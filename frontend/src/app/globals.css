@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+  
+  --color-primary-50: #fdf2f8;
+  --color-primary-100: #fce7f3;
+  --color-primary-200: #fbcfe8;
+  --color-primary-300: #f9a8d4;
+  --color-primary-400: #f472b6;
+  --color-primary-500: #ec4899;
+  --color-primary-600: #db2777;
+  --color-primary-700: #be185d;
+  --color-primary-800: #9d174d;
+  --color-primary-900: #831843;
+  
+  --color-accent-50: #fff7ed;
+  --color-accent-500: #f97316;
+  --color-accent-600: #ea580c;
+}
+
+/* Custom Animations */
+@layer utilities {
+  .animate-blob {
+    animation: blob 15s infinite alternate ease-in-out;
+  }
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+  .animation-delay-4000 {
+    animation-delay: 4s;
+  }
+  
+  .glass-panel {
+    @apply bg-white/40 backdrop-blur-2xl border border-white/50 shadow-[0_8px_32px_rgba(236,72,153,0.08)];
+  }
+  
+  .glass-input {
+    @apply bg-white/50 backdrop-blur-xl border border-white/60 focus:bg-white/80 focus:border-primary-400/50 focus:ring-4 focus:ring-primary-500/10 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] transition-all duration-300;
+  }
+  
+  .glass-button {
+    @apply relative overflow-hidden transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-[0_4px_14px_rgba(236,72,153,0.3)] hover:shadow-[0_6px_20px_rgba(236,72,153,0.4)];
+  }
+  
+  .glass-button::after {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-tr from-white/0 via-white/20 to-white/0 opacity-0 transition-opacity duration-300;
+  }
+  
+  .glass-button:hover::after {
+    @apply opacity-100;
+  }
+}
+
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
