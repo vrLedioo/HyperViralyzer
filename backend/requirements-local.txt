@@ -1,0 +1,5 @@
+# Local/keyless extras — only needed when TRANSCRIPTION_PROVIDER=local
+# (faster-whisper transcribes on-device instead of via the OpenAI Whisper API).
+# Production (TRANSCRIPTION_PROVIDER=openai) does NOT need this.
+-r requirements.txt
+faster-whisper

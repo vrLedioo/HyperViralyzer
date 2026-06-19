@@ -51,8 +51,16 @@ class Settings(BaseSettings):
     stripe_subscription_price_id: str | None = None  # recurring price (monthly)
     pay_per_use_amount_cents: int = 99  # $0.99 single analysis
 
-    # --- URLs (local dev) ---
+    # --- URLs ---
+    # Canonical frontend origin (used for Stripe success/cancel redirects).
     frontend_url: str = "http://localhost:3000"
+    # Allowed CORS origins (comma-separated). Defaults to frontend_url.
+    cors_origins: str | None = None
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        raw = self.cors_origins or self.frontend_url
+        return [o.strip() for o in raw.split(",") if o.strip()]
 
     # --- Uploads / jobs ---
     upload_dir: str = "./uploads"

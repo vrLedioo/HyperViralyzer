@@ -20,7 +20,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(email, password);
-      router.push('/');
+      router.push('/app');
     } catch (err: any) {
       setError(err.message || 'Login failed.');
     } finally {
@@ -85,7 +85,7 @@ export default function LoginPage() {
           <Link href="/signup" className="text-pink-600 font-bold hover:underline">Sign up free</Link>
         </p>
         <p className="text-sm text-slate-400 mt-2 text-center">
-          <Link href="/" className="hover:text-slate-600">← Back to analyzer</Link>
+          <Link href="/" className="hover:text-slate-600">← Back to home</Link>
         </p>
       </div>
     </div>

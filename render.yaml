@@ -1,0 +1,36 @@
+# Render Blueprint for the VidAnalyzer backend + managed Postgres.
+# Deploy: push to GitHub, then Render → New → Blueprint → pick this repo.
+# Secret values (sync:false) are entered in the Render dashboard after creation.
+services:
+  - type: web
+    name: vidanalyzer-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /
+    plan: starter   # 'free' also works; starter avoids cold-start sleeps
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: TRANSCRIPTION_PROVIDER
+        value: openai          # cloud Whisper (no local faster-whisper in prod)
+      - key: JWT_SECRET
+        generateValue: true    # Render generates a strong secret (satisfies prod guard)
+      - key: DATABASE_URL
+        fromDatabase:
+          name: vidanalyzer-db
+          property: connectionString
+      - key: OPENAI_API_KEY
+        sync: false            # set in dashboard
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_SUBSCRIPTION_PRICE_ID
+        sync: false
+      - key: FRONTEND_URL
+        sync: false            # your Vercel URL, e.g. https://vidanalyzer.vercel.app
+
+databases:
+  - name: vidanalyzer-db
+    plan: free

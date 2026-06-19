@@ -59,6 +59,8 @@ cd backend
 python -m venv venv
 venv\Scripts\activate            # Windows  (source venv/bin/activate on macOS/Linux)
 pip install -r requirements.txt
+# For the keyless LOCAL transcription path (faster-whisper), instead run:
+#   pip install -r requirements-local.txt
 copy .env.example .env           # then fill in your keys (cp on macOS/Linux)
 uvicorn main:app --reload --port 8000
 ```
@@ -71,7 +73,7 @@ npm install
 # optional: copy .env.local.example .env.local  (defaults to localhost:8000)
 npm run dev
 ```
-App: http://localhost:3000
+Landing page: http://localhost:3000 · the app itself: http://localhost:3000/app
 
 ### Stripe webhooks (local, for subscriptions)
 ```bash
@@ -101,6 +103,15 @@ Create a recurring Price in the Stripe dashboard and put its id in
 Every analysis passes through one gate (`backend/access.py`): BYOK key → active subscription →
 account credits → single-use pay token. If none apply, the request is rejected with `402`
 (no more silent fake scores).
+
+## Publishing / going live
+
+- **[docs/GO-LIVE.md](docs/GO-LIVE.md)** — exact steps to deploy (Vercel + Render + Postgres),
+  set up Stripe, and take real payments.
+- **[docs/MARKETING.md](docs/MARKETING.md)** — brand, positioning, and a copy/paste launch kit
+  (Product Hunt, X, Reddit, email).
+- Production runs on a cloud OpenAI key (`TRANSCRIPTION_PROVIDER=openai`); the free local Ollama
+  setup is for development. `render.yaml` + `backend/Dockerfile` make the backend one-click deployable.
 
 ## Security & production
 

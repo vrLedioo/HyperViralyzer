@@ -1,621 +1,231 @@
-'use client';
-
-import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import {
-  Play, Sparkles, History, BrainCircuit, CheckCircle2, TrendingUp, Target, Zap,
-  Clock, AlertCircle, Key, CreditCard, ChevronRight, LogOut, User as UserIcon,
-  Lightbulb, Video, UploadCloud, FileText, Crown,
+  Play, Sparkles, Target, TrendingUp, Zap, Check, ArrowRight, Upload,
+  BrainCircuit, Clock, KeyRound, History, Star,
 } from 'lucide-react';
-import { useAuth } from '@/lib/auth';
-import { api, API_URL, getToken } from '@/lib/api';
 
-const EXAMPLES = [
-  {
-    icon: '🎮', shortTitle: 'Minecraft',
-    title: 'I Survived 100 Days in Hardcore Minecraft',
-    script: "I spawned in a brand new hardcore world with nothing but my fists. My goal? Survive 100 days without taking a single heart of damage. If I fail, I delete the channel. Day 1 started off terrible when I immediately fell into a ravine...",
-  },
-  {
-    icon: '💰', shortTitle: 'Side Hustle',
-    title: 'How I Made $500 in 24 Hours (No Skills)',
-    script: "Everyone says you need money to make money, but today I'm going to prove them wrong. I have exactly 24 hours to turn $0 into $500 using only free tools on the internet. And no, this isn't dropshipping or crypto. Watch exactly what I do.",
-  },
-  {
-    icon: '✂️', shortTitle: 'Barber Story',
-    title: 'Worst Barber in Kosovo?',
-    script: "I found the lowest-rated barber shop in all of Pristina. They have 1 star on Google Maps and the reviews say they literally ruined people's lives. Today, I'm going in for a full haircut and beard trim. Let's see how bad it really is.",
-  },
+export const metadata = {
+  title: 'VidAnalyzer — Score your video hook before you post',
+  description:
+    "AI scores your video's hook strength, retention, and viral potential in seconds — with the exact fixes to get more views. Free to start.",
+};
+
+const STEPS = [
+  { icon: Upload, title: 'Paste or upload', body: 'Drop in your title + hook, or upload the actual clip — we transcribe it automatically.' },
+  { icon: BrainCircuit, title: 'AI scores it', body: 'Get Hook, Retention, and Viral scores (0–100) in seconds, judged like a real retention strategist.' },
+  { icon: TrendingUp, title: 'Fix & post', body: 'Apply the specific, no-fluff feedback and publish the version that actually performs.' },
 ];
 
-const PAY_TOKEN_KEY = 'va_pay_token';
+const FEATURES = [
+  { icon: Target, title: 'Hook strength', body: 'Find out if your first 5 seconds create a real curiosity gap — the make-or-break moment.' },
+  { icon: TrendingUp, title: 'Retention prediction', body: 'See where pacing will lose viewers before the algorithm ever does.' },
+  { icon: Zap, title: 'Viral potential', body: 'Gauge how broad and shareable your premise really is.' },
+  { icon: Play, title: 'Real video analysis', body: 'Upload a clip — we extract the audio, transcribe it, and score the hook you actually said.' },
+  { icon: History, title: 'Saved history', body: 'Every analysis is saved so you can compare ideas and track what works.' },
+  { icon: KeyRound, title: 'Bring your own key', body: 'Prefer to run on your own OpenAI key? Do it — unlimited, on us.' },
+];
 
-interface AnalysisResult {
-  hook_score: number;
-  retention_score: number;
-  viral_score: number;
-  feedback: string;
-  transcript?: string | null;
-  pay_token_consumed?: boolean;
-}
+const FAQ = [
+  { q: 'Does it analyze real videos or just text?', a: 'Both. Test an idea by pasting a title + hook, or upload an actual clip — we transcribe the audio and score the real hook you delivered.' },
+  { q: 'Do I need an account?', a: 'No. You can pay $0.99 for a single analysis with no signup, or bring your own OpenAI key for free. An account gets you 3 free analyses, saved history, and the unlimited plan.' },
+  { q: 'How fast is it?', a: 'Idea scoring takes a few seconds. Video analysis runs transcription then scoring and is usually done well under a minute.' },
+  { q: 'What platforms is it for?', a: 'Anything short-form-first: YouTube, TikTok, Instagram Reels, and Shorts. The hook principles are universal.' },
+  { q: 'Is my data private?', a: 'Your analyses are tied to your account and only visible to you. Uploaded videos are deleted after processing.' },
+];
 
-interface HistoryItem {
-  id: number;
-  kind: string;
-  title: string;
-  transcript?: string | null;
-  hook_score: number;
-  retention_score: number;
-  viral_score: number;
-  feedback: string;
-  created_at: string;
-}
-
-interface AppConfig {
-  billing_enabled: boolean;
-  subscription_enabled: boolean;
-  byok_enabled: boolean;
-  server_llm_ready: boolean;
-  provider: string;
-  pay_per_use_cents: number;
-  free_credits_on_signup: number;
-}
-
-type Mode = 'idea' | 'video';
-
-function scoreLabel(viral: number): { label: string; color: string } {
-  if (viral >= 75) return { label: '🔥 Viral', color: 'text-rose-700 bg-rose-100/80 border-rose-200' };
-  if (viral >= 55) return { label: '🚀 Strong', color: 'text-emerald-700 bg-emerald-100/80 border-emerald-200' };
-  return { label: '⚠️ Average', color: 'text-amber-700 bg-amber-100/80 border-amber-200' };
-}
-
-export default function Home() {
-  const { user, logout, refresh } = useAuth();
-
-  const [mode, setMode] = useState<Mode>('idea');
-  const [title, setTitle] = useState('');
-  const [script, setScript] = useState('');
-  const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [userApiKey, setUserApiKey] = useState('');
-  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
-
-  const [isLoading, setIsLoading] = useState(false);
-  const [statusLabel, setStatusLabel] = useState('');
-  const [result, setResult] = useState<AnalysisResult | null>(null);
-  const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
-  const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [config, setConfig] = useState<AppConfig | null>(null);
-
-  const charCount = script.length;
-  const wordCount = script.trim() ? script.trim().split(/\s+/).length : 0;
-  const estimatedSeconds = Math.round((wordCount / 150) * 60);
-
-  const loadHistory = useCallback(async () => {
-    if (!user) {
-      setHistory([]);
-      return;
-    }
-    try {
-      const items = await api<HistoryItem[]>('/api/history');
-      setHistory(items);
-    } catch {
-      /* ignore */
-    }
-  }, [user]);
-
-  useEffect(() => { loadHistory(); }, [loadHistory]);
-
-  // Load server capabilities (to adapt billing UI). Retry once on transient failure.
-  useEffect(() => {
-    let cancelled = false;
-    const load = async (attempt = 0): Promise<void> => {
-      try {
-        const cfg = await api<AppConfig>('/api/config', { auth: false });
-        if (!cancelled) setConfig(cfg);
-      } catch (e) {
-        if (attempt < 1) return load(attempt + 1);
-        console.error('Failed to load /api/config:', e);
-      }
-    };
-    load();
-    return () => { cancelled = true; };
-  }, []);
-
-  // Handle Stripe redirects (pay-per-use + subscription).
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const cleanUrl = () => window.history.replaceState({}, '', window.location.pathname);
-
-    if (params.get('payment') === 'success' && params.get('session_id')) {
-      const sessionId = params.get('session_id')!;
-      cleanUrl();
-      (async () => {
-        try {
-          const res = await api<{ pay_token: string }>('/api/checkout/verify', {
-            method: 'POST', auth: false,
-            body: JSON.stringify({ session_id: sessionId }),
-          });
-          localStorage.setItem(PAY_TOKEN_KEY, res.pay_token);
-          setNotice('Payment confirmed — you have 1 analysis ready. Submit below.');
-        } catch (e: any) {
-          setError(e.message || 'Could not verify payment.');
-        }
-      })();
-    } else if (params.get('payment') === 'cancelled') {
-      cleanUrl();
-      setNotice('Payment cancelled.');
-    } else if (params.get('subscribed') === 'success') {
-      cleanUrl();
-      setNotice('Subscription active — enjoy unlimited analyses! ✨');
-      refresh();
-    } else if (params.get('subscribed') === 'cancelled') {
-      cleanUrl();
-      setNotice('Subscription checkout cancelled.');
-    }
-  }, [refresh]);
-
-  const consumePayTokenIfAny = () => localStorage.getItem(PAY_TOKEN_KEY) || undefined;
-
-  const afterSuccess = async (payTokenConsumed: boolean) => {
-    // Only drop the pay token if the server actually spent it — otherwise a
-    // higher-priority path (credits/subscription/BYOK) was used and the paid
-    // token must be preserved for a later analysis.
-    if (payTokenConsumed) localStorage.removeItem(PAY_TOKEN_KEY);
-    await Promise.all([refresh(), loadHistory()]);
-  };
-
-  const handleAnalyzeIdea = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!title.trim() || !script.trim()) return;
-    setIsLoading(true); setError(''); setNotice('');
-    if (result) { setResult(null); await new Promise((r) => setTimeout(r, 250)); }
-    try {
-      const data = await api<AnalysisResult>('/api/analyze-idea', {
-        method: 'POST',
-        body: JSON.stringify({
-          title, script,
-          user_api_key: userApiKey || undefined,
-          pay_token: consumePayTokenIfAny(),
-        }),
-      });
-      setResult(data);
-      await afterSuccess(!!data.pay_token_consumed);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred while connecting to the server.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
-
-  const handleAnalyzeVideo = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!title.trim() || !videoFile) return;
-    setIsLoading(true); setError(''); setNotice(''); setResult(null);
-    setStatusLabel('Uploading…');
-    try {
-      const form = new FormData();
-      form.append('title', title);
-      form.append('file', videoFile);
-      if (userApiKey) form.append('user_api_key', userApiKey);
-      const payTok = consumePayTokenIfAny();
-      if (payTok) form.append('pay_token', payTok);
-
-      const token = getToken();
-      const headers: Record<string, string> = {};
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-
-      const res = await fetch(`${API_URL}/api/analyze-video`, { method: 'POST', body: form, headers });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.detail || `Upload failed (${res.status})`);
-      }
-      const { job_id } = await res.json();
-
-      // Poll for completion.
-      let payConsumed = false;
-      await new Promise<void>((resolve, reject) => {
-        pollRef.current = setInterval(async () => {
-          try {
-            const job = await api<any>(`/api/jobs/${job_id}`);
-            if (job.status === 'transcribing') setStatusLabel('Transcribing audio…');
-            else if (job.status === 'scoring') setStatusLabel('Scoring with AI…');
-            else if (job.status === 'done') {
-              clearInterval(pollRef.current!);
-              payConsumed = !!job.pay_token_consumed;
-              setResult({
-                hook_score: job.hook_score, retention_score: job.retention_score,
-                viral_score: job.viral_score, feedback: job.feedback, transcript: job.transcript,
-              });
-              resolve();
-            } else if (job.status === 'error') {
-              clearInterval(pollRef.current!);
-              reject(new Error(job.error || 'Video analysis failed.'));
-            }
-          } catch (err) {
-            clearInterval(pollRef.current!);
-            reject(err);
-          }
-        }, 2000);
-      });
-      await afterSuccess(payConsumed);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during video analysis.');
-    } finally {
-      setIsLoading(false);
-      setStatusLabel('');
-    }
-  };
-
-  const handlePayPerUse = async () => {
-    try {
-      const data = await api<{ url: string }>('/api/checkout/pay-per-use', { method: 'POST', auth: false });
-      if (data.url) window.location.href = data.url;
-    } catch (err: any) {
-      setError(err.message || 'Could not initiate payment.');
-    }
-  };
-
-  const handleSubscribe = async () => {
-    if (!user) { window.location.href = '/signup'; return; }
-    try {
-      const data = await api<{ url: string }>('/api/checkout/subscription', { method: 'POST' });
-      if (data.url) window.location.href = data.url;
-    } catch (err: any) {
-      setError(err.message || 'Could not start subscription.');
-    }
-  };
-
-  const loadExample = (index: number) => { setTitle(EXAMPLES[index].title); setScript(EXAMPLES[index].script); };
-
-  const canSubmit = mode === 'idea' ? !!(title.trim() && script.trim()) : !!(title.trim() && videoFile);
-
+function Logo() {
   return (
-    <div className="flex h-screen w-full relative z-10 p-4 md:p-6 lg:p-8 gap-6 text-slate-900">
-      {/* Sidebar */}
-      <aside className="w-72 bg-white/40 backdrop-blur-xl rounded-3xl hidden lg:flex flex-col overflow-hidden border border-black/5 shadow-sm">
-        <div className="p-8 pb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center shadow-md">
-              <Play className="w-5 h-5 text-white fill-white ml-0.5" />
-            </div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">VidAnalyzer</h1>
-          </div>
-        </div>
-
-        <nav className="px-4 space-y-1">
-          <button
-            onClick={() => { setMode('idea'); setResult(null); setError(''); }}
-            className={`flex items-center gap-3 px-5 py-3 rounded-xl font-bold w-full transition-all cursor-pointer ${mode === 'idea' ? 'text-slate-900 bg-white/80 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-900 hover:bg-white/50'}`}
-          >
-            <Lightbulb className={`w-5 h-5 ${mode === 'idea' ? 'text-pink-500' : ''}`} />
-            <span>Idea Tester</span>
-          </button>
-          <button
-            onClick={() => { setMode('video'); setResult(null); setError(''); }}
-            className={`flex items-center gap-3 px-5 py-3 rounded-xl font-bold w-full transition-all cursor-pointer ${mode === 'video' ? 'text-slate-900 bg-white/80 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-900 hover:bg-white/50'}`}
-          >
-            <Video className={`w-5 h-5 ${mode === 'video' ? 'text-pink-500' : ''}`} />
-            <span>Video Upload</span>
-          </button>
-        </nav>
-
-        <div className="mt-8 px-6 flex-1 overflow-hidden flex flex-col">
-          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
-            <History className="w-3.5 h-3.5" /> Recent Analyses
-          </h4>
-          <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar pr-2">
-            {!user ? (
-              <p className="text-sm text-slate-400 font-medium leading-relaxed">
-                <Link href="/login" className="text-pink-600 font-bold hover:underline">Log in</Link> to save and revisit your analyses.
-              </p>
-            ) : history.length === 0 ? (
-              <p className="text-sm text-slate-400 font-medium">No analyses yet. Run your first one!</p>
-            ) : (
-              history.map((item) => {
-                const { label, color } = scoreLabel(item.viral_score);
-                return (
-                  <div key={item.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-white/50 cursor-pointer transition-colors border border-transparent hover:border-black/5"
-                    onClick={() => {
-                      // Stop any in-flight analysis so it can't overwrite the restored view.
-                      if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
-                      setIsLoading(false);
-                      setStatusLabel('');
-                      setError('');
-                      setResult({
-                        hook_score: item.hook_score, retention_score: item.retention_score,
-                        viral_score: item.viral_score, feedback: item.feedback,
-                        transcript: item.transcript ?? undefined,
-                      });
-                    }}>
-                    <div className="min-w-0 mr-3">
-                      <p className="text-sm font-semibold text-slate-700 truncate">{item.title}</p>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase">{item.kind}</p>
-                    </div>
-                    <span className={`text-[10px] font-bold px-2 py-1 rounded-md border shrink-0 ${color}`}>{label}</span>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-
-        {/* Account */}
-        <div className="px-4 pt-2">
-          {user ? (
-            <div className="p-3 bg-white/80 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-orange-500 flex items-center justify-center text-white shrink-0">
-                <UserIcon className="w-4 h-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-slate-800 truncate">{user.email}</p>
-                <p className="text-xs font-semibold text-slate-500">
-                  {user.subscription_status === 'active' ? '✨ Pro — unlimited' : `${user.credits} credit${user.credits === 1 ? '' : 's'}`}
-                </p>
-              </div>
-              <button onClick={logout} title="Log out" className="text-slate-400 hover:text-pink-600 transition-colors cursor-pointer">
-                <LogOut className="w-4 h-4" />
-              </button>
-            </div>
-          ) : (
-            <div className="flex gap-2">
-              <Link href="/login" className="flex-1 text-center py-2 rounded-xl bg-white/80 border border-slate-200 text-sm font-bold text-slate-700 hover:border-pink-300 transition-colors">Log in</Link>
-              <Link href="/signup" className="flex-1 text-center py-2 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-colors">Sign up</Link>
-            </div>
-          )}
-        </div>
-
-        {/* Billing */}
-        <div className="p-4 m-4 bg-white/80 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-3">
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Billing Options</p>
-
-          <button onClick={() => setShowApiKeyInput(!showApiKeyInput)} className="flex items-center justify-between w-full p-2 hover:bg-slate-50 rounded-lg transition-colors group cursor-pointer text-left">
-            <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 group-hover:text-pink-600">
-              <Key className="w-4 h-4" /> Use own OpenAI Key
-            </div>
-            <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform ${showApiKeyInput ? 'rotate-90' : ''}`} />
-          </button>
-
-          {showApiKeyInput && (
-            <input type="password" placeholder="sk-..." value={userApiKey} onChange={(e) => setUserApiKey(e.target.value)}
-              className="w-full text-xs px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 focus:border-pink-500 outline-none" />
-          )}
-
-          {(config?.billing_enabled || config?.subscription_enabled) && <div className="h-px w-full bg-slate-100"></div>}
-
-          {config?.billing_enabled && (
-            <button onClick={handlePayPerUse} className="flex items-center gap-2 w-full p-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg transition-colors text-sm font-semibold justify-center cursor-pointer">
-              <CreditCard className="w-4 h-4" /> Pay per use (${(config.pay_per_use_cents / 100).toFixed(2)})
-            </button>
-          )}
-          {config?.subscription_enabled && user?.subscription_status !== 'active' && (
-            <button onClick={handleSubscribe} className="flex items-center gap-2 w-full p-2 bg-gradient-to-r from-pink-500 to-orange-500 hover:opacity-95 text-white rounded-lg transition-all text-sm font-semibold justify-center cursor-pointer">
-              <Crown className="w-4 h-4" /> Go Pro (unlimited)
-            </button>
-          )}
-          {!config?.billing_enabled && !config?.subscription_enabled && (
-            <p className="text-xs text-slate-400 font-medium leading-relaxed">
-              {config?.provider === 'local' ? 'Running on a free local AI model. ' : ''}
-              {user ? 'Use your account credits, or add your own OpenAI key above.' : 'Sign up for free credits, or add your own OpenAI key above.'}
-            </p>
-          )}
-        </div>
-      </aside>
-
-      {/* Main */}
-      <main className="flex-1 flex flex-col h-full overflow-hidden max-w-[1200px] mx-auto">
-        <header className="mb-6 px-2 flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-extrabold tracking-tight text-slate-900">
-              {mode === 'idea' ? 'Test Your Video Idea' : 'Analyze Your Video'}
-            </h2>
-            <p className="text-slate-600 mt-1 text-lg font-medium">
-              {mode === 'idea'
-                ? 'Get AI-powered feedback on your hook and pacing.'
-                : 'Upload a clip — we transcribe it and score the real hook.'}
-            </p>
-          </div>
-        </header>
-
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 flex-1 min-h-0">
-          {/* Input */}
-          <div className="flex-[1.1] min-h-0 flex flex-col relative max-w-2xl">
-            <div className="flex-1 bg-white rounded-[24px] p-6 md:p-8 flex flex-col border border-black/5 shadow-xl overflow-y-auto custom-scrollbar">
-              {notice && (
-                <div className="mb-4 bg-emerald-50 border-l-4 border-emerald-500 p-3 rounded-lg text-emerald-800 text-sm font-medium">{notice}</div>
-              )}
-
-              {mode === 'idea' ? (
-                <>
-                  <div className="mb-5">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Try an example</p>
-                    <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
-                      {EXAMPLES.map((ex, i) => (
-                        <button key={i} onClick={() => loadExample(i)} type="button"
-                          className="whitespace-nowrap flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 hover:border-pink-300 hover:bg-pink-50 text-sm font-semibold text-slate-700 transition-colors shadow-sm cursor-pointer">
-                          <span>{ex.icon}</span><span>{ex.shortTitle}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <form onSubmit={handleAnalyzeIdea} className="flex-1 flex flex-col">
-                    <div className="group mb-5">
-                      <label htmlFor="title" className="block text-sm font-bold text-slate-800 mb-2">Video Title</label>
-                      <input type="text" id="title" required value={title} onChange={(e) => setTitle(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50/50 border-2 border-slate-200 focus:border-pink-500 focus:ring-4 focus:ring-pink-500/10 focus:bg-white text-slate-900 placeholder-slate-400 font-semibold transition-all outline-none"
-                        placeholder="e.g. I Survived 100 Days in Minecraft..." />
-                    </div>
-
-                    <div className="group flex-1 flex flex-col min-h-[140px]">
-                      <label htmlFor="script" className="block text-sm font-bold text-slate-800 mb-2">Video Hook / Script</label>
-                      <textarea id="script" required value={script} onChange={(e) => setScript(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl bg-slate-50/50 border-2 border-slate-200 focus:border-pink-500 focus:ring-4 focus:ring-pink-500/10 focus:bg-white text-slate-900 placeholder-slate-400 font-medium leading-relaxed resize-none flex-1 outline-none transition-all"
-                        placeholder="Paste the first 30-60 seconds of your script here..." />
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-2 px-1 gap-2">
-                        <div className="flex items-center gap-3">
-                          <p className={`text-xs font-bold ${charCount > 1500 ? 'text-red-500' : charCount > 0 ? 'text-pink-500' : 'text-slate-400'}`}>{charCount} / 1500 chars</p>
-                          <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
-                          <p className="text-xs font-bold text-slate-500 flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-slate-400" />Est. time: {estimatedSeconds}s</p>
-                        </div>
-                        {estimatedSeconds > 0 && (
-                          <p className={`text-xs font-bold flex items-center gap-1 ${estimatedSeconds >= 20 && estimatedSeconds <= 60 ? 'text-emerald-600' : 'text-amber-500'}`}>
-                            {estimatedSeconds >= 20 && estimatedSeconds <= 60 ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertCircle className="w-3.5 h-3.5" />}Optimal hook: 20-60 sec
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    <SubmitButton isLoading={isLoading} disabled={!canSubmit} label="Analyze Idea" statusLabel={statusLabel} />
-                  </form>
-                </>
-              ) : (
-                <form onSubmit={handleAnalyzeVideo} className="flex-1 flex flex-col">
-                  <div className="group mb-5">
-                    <label htmlFor="vtitle" className="block text-sm font-bold text-slate-800 mb-2">Video Title</label>
-                    <input type="text" id="vtitle" required value={title} onChange={(e) => setTitle(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50/50 border-2 border-slate-200 focus:border-pink-500 focus:ring-4 focus:ring-pink-500/10 focus:bg-white text-slate-900 placeholder-slate-400 font-semibold transition-all outline-none"
-                      placeholder="Give your video a title..." />
-                  </div>
-
-                  <label className="flex-1 min-h-[180px] flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-2xl cursor-pointer hover:border-pink-400 hover:bg-pink-50/40 transition-colors text-center p-6">
-                    <input type="file" accept="video/*" className="hidden" onChange={(e) => setVideoFile(e.target.files?.[0] || null)} />
-                    {videoFile ? (
-                      <>
-                        <FileText className="w-10 h-10 text-pink-500 mb-3" />
-                        <p className="font-bold text-slate-800 break-all">{videoFile.name}</p>
-                        <p className="text-sm text-slate-500 font-medium mt-1">{(videoFile.size / (1024 * 1024)).toFixed(1)} MB · click to change</p>
-                      </>
-                    ) : (
-                      <>
-                        <UploadCloud className="w-10 h-10 text-slate-400 mb-3" />
-                        <p className="font-bold text-slate-700">Click to upload a video</p>
-                        <p className="text-sm text-slate-500 font-medium mt-1">MP4, MOV, WebM · we extract audio &amp; transcribe it</p>
-                      </>
-                    )}
-                  </label>
-
-                  <SubmitButton isLoading={isLoading} disabled={!canSubmit} label="Analyze Video" statusLabel={statusLabel} />
-                </form>
-              )}
-            </div>
-          </div>
-
-          {/* Results */}
-          <div className="flex-[0.9] min-h-0 flex flex-col">
-            {error && (
-              <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-xl flex items-start gap-3 shadow-sm">
-                <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-                <p className="text-red-800 font-medium">{error}</p>
-              </div>
-            )}
-
-            <div className="flex-1 bg-slate-50/80 rounded-[24px] p-6 md:p-8 flex flex-col relative overflow-y-auto custom-scrollbar border border-black/[0.06] shadow-inner">
-              <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200/60">
-                <h3 className="text-2xl font-extrabold tracking-tight text-slate-900">Analysis Results</h3>
-                {result ? (
-                  <div className="flex items-center gap-1.5 px-3 py-1 bg-pink-100 rounded-lg text-pink-700 text-xs font-bold uppercase tracking-wider shadow-sm border border-pink-200"><Sparkles className="w-3 h-3" /> AI Generated</div>
-                ) : (
-                  <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-200/60 rounded-lg text-slate-500 text-xs font-bold uppercase tracking-wider"><Clock className="w-3 h-3" /> Awaiting Input</div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 mb-6 relative">
-                <ScoreCard label="Hook Strength" value={result?.hook_score} color="pink" Icon={Target} />
-                <ScoreCard label="Retention Predict" value={result?.retention_score} color="emerald" Icon={TrendingUp} delay="delay-150" />
-                <ScoreCard label="Viral Potential" value={result?.viral_score} color="orange" Icon={Zap} delay="delay-300" />
-                {isLoading && (
-                  <div className="absolute inset-0 bg-slate-50/50 backdrop-blur-[2px] rounded-2xl z-10 flex flex-col items-center justify-center gap-3">
-                    <div className="w-12 h-12 relative">
-                      <div className="absolute inset-0 rounded-full border-[3px] border-slate-200"></div>
-                      <div className="absolute inset-0 rounded-full border-[3px] border-transparent border-t-pink-500 animate-spin"></div>
-                    </div>
-                    {statusLabel && <p className="text-sm font-bold text-slate-600">{statusLabel}</p>}
-                  </div>
-                )}
-              </div>
-
-              <div className={`border-2 p-6 rounded-2xl transition-all duration-500 flex flex-col ${result ? 'bg-white border-pink-100 shadow-sm' : 'bg-transparent border-slate-200/60 border-dashed flex-1'}`}>
-                <h4 className={`text-lg font-bold mb-4 flex items-center gap-2 transition-colors ${result ? 'text-slate-900' : 'text-slate-400'}`}>
-                  <BrainCircuit className={`w-5 h-5 ${result ? 'text-pink-500' : 'text-slate-400'}`} /> Detailed Feedback
-                </h4>
-                {isLoading ? (
-                  <div className="flex-1 flex flex-col space-y-3 animate-pulse">
-                    <div className="h-4 bg-slate-200 rounded-md w-3/4"></div>
-                    <div className="h-4 bg-slate-200 rounded-md w-full"></div>
-                    <div className="h-4 bg-slate-200 rounded-md w-5/6"></div>
-                  </div>
-                ) : result ? (
-                  <p className="text-slate-700 leading-relaxed text-lg font-medium">{result.feedback}</p>
-                ) : (
-                  <div className="flex-1 flex flex-col items-center justify-center text-center py-8">
-                    <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-3"><Sparkles className="w-6 h-6 text-slate-300" /></div>
-                    <p className="text-slate-400 font-medium max-w-[250px]">
-                      {mode === 'idea' ? 'Paste your script and click analyze to reveal your potential.' : 'Upload a video and click analyze to transcribe and score it.'}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {result?.transcript && (
-                <div className="mt-4 bg-white border-2 border-slate-100 p-6 rounded-2xl">
-                  <h4 className="text-lg font-bold mb-3 flex items-center gap-2 text-slate-900"><FileText className="w-5 h-5 text-pink-500" /> Transcript</h4>
-                  <p className="text-slate-600 leading-relaxed text-sm font-medium whitespace-pre-wrap">{result.transcript}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </main>
-
-      <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-      `}</style>
+    <div className="flex items-center gap-2.5">
+      <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center shadow-md">
+        <Play className="w-4.5 h-4.5 text-white fill-white ml-0.5" />
+      </div>
+      <span className="text-lg font-bold text-slate-900 tracking-tight">VidAnalyzer</span>
     </div>
   );
 }
 
-function SubmitButton({ isLoading, disabled, label, statusLabel }: { isLoading: boolean; disabled: boolean; label: string; statusLabel: string }) {
+export default function Landing() {
   return (
-    <button type="submit" disabled={isLoading || disabled}
-      className="w-full relative overflow-hidden bg-gradient-to-r from-pink-500 to-orange-500 text-white font-bold py-3.5 px-8 rounded-xl shadow-[0_8px_20px_rgba(236,72,153,0.25)] hover:shadow-[0_8px_25px_rgba(236,72,153,0.4)] hover:scale-[1.01] active:scale-[0.98] transition-all duration-300 disabled:opacity-60 disabled:hover:scale-100 disabled:cursor-not-allowed flex justify-center items-center gap-2 text-lg mt-5 group cursor-pointer">
-      <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"></div>
-      {isLoading ? (
-        <div className="flex items-center gap-2 relative z-10"><span className="tracking-wide">{statusLabel || 'Analyzing'}</span>
-          <div className="flex items-center gap-1 ml-1">
-            <div className="w-1.5 h-4 bg-white rounded-full animate-pulse"></div>
-            <div className="w-1.5 h-6 bg-white rounded-full animate-pulse" style={{ animationDelay: '150ms' }}></div>
-            <div className="w-1.5 h-4 bg-white rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></div>
+    <div className="relative z-10 text-slate-900">
+      {/* Nav */}
+      <header className="max-w-6xl mx-auto px-5 sm:px-8 py-5 flex items-center justify-between">
+        <Logo />
+        <nav className="flex items-center gap-2 sm:gap-3">
+          <Link href="/login" className="px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:text-slate-900 transition-colors">Log in</Link>
+          <Link href="/signup" className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 transition-colors shadow-sm">Start free</Link>
+        </nav>
+      </header>
+
+      {/* Hero */}
+      <section className="max-w-4xl mx-auto px-5 sm:px-8 pt-12 pb-16 text-center">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/70 border border-black/5 shadow-sm text-xs font-bold text-slate-600 mb-6">
+          <Sparkles className="w-3.5 h-3.5 text-pink-500" /> AI hook scoring for creators
+        </div>
+        <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-[1.05] text-slate-900">
+          Know if your video will pop —<br className="hidden sm:block" />
+          <span className="bg-gradient-to-r from-pink-500 to-orange-500 bg-clip-text text-transparent"> before you post it.</span>
+        </h1>
+        <p className="mt-6 text-lg sm:text-xl text-slate-600 font-medium max-w-2xl mx-auto leading-relaxed">
+          Paste your hook or upload your clip. VidAnalyzer&apos;s AI scores its hook strength, retention,
+          and viral potential in seconds — with the exact tweaks to get more views.
+        </p>
+        <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Link href="/signup" className="group inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl text-lg font-bold text-white bg-gradient-to-r from-pink-500 to-orange-500 shadow-[0_10px_30px_rgba(236,72,153,0.3)] hover:shadow-[0_10px_35px_rgba(236,72,153,0.45)] hover:scale-[1.02] active:scale-[0.98] transition-all">
+            Score my video free <ArrowRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
+          </Link>
+          <Link href="/app" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl text-lg font-bold text-slate-700 bg-white/80 border border-black/5 hover:border-pink-300 transition-colors">
+            Try it now
+          </Link>
+        </div>
+        <p className="mt-4 text-sm text-slate-500 font-medium flex items-center justify-center gap-1.5">
+          <Check className="w-4 h-4 text-emerald-500" /> No credit card · 3 free analyses · or pay $0.99 per use
+        </p>
+
+        {/* Score preview */}
+        <div className="mt-14 max-w-3xl mx-auto bg-white/80 backdrop-blur-xl rounded-3xl border border-black/5 shadow-xl p-6 sm:p-8 text-left">
+          <div className="flex items-center justify-between mb-5 pb-4 border-b border-slate-100">
+            <p className="font-bold text-slate-800 truncate pr-3">&ldquo;I Survived 100 Days in Hardcore Minecraft&rdquo;</p>
+            <span className="shrink-0 inline-flex items-center gap-1.5 text-xs font-bold text-pink-700 bg-pink-100 px-2.5 py-1 rounded-lg border border-pink-200"><Sparkles className="w-3 h-3" /> AI</span>
+          </div>
+          <div className="grid grid-cols-3 gap-3 sm:gap-4">
+            {[{ l: 'Hook', v: 88, c: 'pink' }, { l: 'Retention', v: 74, c: 'emerald' }, { l: 'Viral', v: 91, c: 'orange' }].map((s) => (
+              <div key={s.l} className="bg-slate-50/80 rounded-2xl p-4 border border-black/5">
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{s.l}</p>
+                <p className="text-3xl font-black text-slate-900 mt-1">{s.v}<span className="text-base text-slate-400">/100</span></p>
+                <div className="mt-2 h-1.5 w-full bg-slate-200/70 rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full ${s.c === 'pink' ? 'bg-pink-500' : s.c === 'emerald' ? 'bg-emerald-500' : 'bg-orange-500'}`} style={{ width: `${s.v}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-5 text-slate-600 font-medium leading-relaxed text-sm sm:text-base">
+            <span className="font-bold text-slate-800">Feedback:</span> Strong curiosity gap and high stakes.
+            Cut the first two sentences so the &ldquo;delete the channel&rdquo; threat lands in the first 5 seconds.
+          </p>
+        </div>
+      </section>
+
+      {/* Problem / solution */}
+      <section className="max-w-4xl mx-auto px-5 sm:px-8 py-14 text-center">
+        <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Your hook decides everything.</h2>
+        <p className="mt-4 text-lg text-slate-600 font-medium max-w-2xl mx-auto leading-relaxed">
+          Most videos don&apos;t fail because of editing or lighting — they fail in the first 5 seconds.
+          You only find out <em>after</em> you&apos;ve spent hours filming. VidAnalyzer tells you{' '}
+          <span className="font-bold text-slate-800">before</span> you hit record.
+        </p>
+      </section>
+
+      {/* How it works */}
+      <section className="max-w-5xl mx-auto px-5 sm:px-8 py-10">
+        <p className="text-center text-xs font-bold text-pink-500 uppercase tracking-widest mb-3">How it works</p>
+        <h2 className="text-center text-3xl sm:text-4xl font-extrabold tracking-tight mb-12">Three steps to a better hook</h2>
+        <div className="grid md:grid-cols-3 gap-6">
+          {STEPS.map((s, i) => (
+            <div key={s.title} className="bg-white/80 backdrop-blur-xl rounded-3xl border border-black/5 shadow-sm p-7 relative">
+              <div className="absolute -top-3 -left-1 w-8 h-8 rounded-full bg-slate-900 text-white text-sm font-black flex items-center justify-center shadow-md">{i + 1}</div>
+              <s.icon className="w-8 h-8 text-pink-500 mb-4" />
+              <h3 className="text-lg font-bold text-slate-900 mb-2">{s.title}</h3>
+              <p className="text-slate-600 font-medium leading-relaxed text-sm">{s.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="max-w-5xl mx-auto px-5 sm:px-8 py-14">
+        <h2 className="text-center text-3xl sm:text-4xl font-extrabold tracking-tight mb-12">Everything you need to nail the hook</h2>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {FEATURES.map((f) => (
+            <div key={f.title} className="bg-white/70 backdrop-blur-xl rounded-2xl border border-black/5 shadow-sm p-6">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500/10 to-orange-500/10 flex items-center justify-center mb-4">
+                <f.icon className="w-5 h-5 text-pink-500" />
+              </div>
+              <h3 className="font-bold text-slate-900 mb-1.5">{f.title}</h3>
+              <p className="text-slate-600 font-medium text-sm leading-relaxed">{f.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section id="pricing" className="max-w-5xl mx-auto px-5 sm:px-8 py-14">
+        <h2 className="text-center text-3xl sm:text-4xl font-extrabold tracking-tight mb-3">Simple pricing</h2>
+        <p className="text-center text-slate-600 font-medium mb-12">Start free. Upgrade only when it&apos;s paying off.</p>
+        <div className="grid md:grid-cols-3 gap-6 items-stretch">
+          {/* Free */}
+          <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-black/5 shadow-sm p-7 flex flex-col">
+            <h3 className="font-bold text-slate-900 text-lg">Free</h3>
+            <p className="mt-2 text-4xl font-black">$0</p>
+            <p className="text-sm text-slate-500 font-medium mt-1">to get started</p>
+            <ul className="mt-6 space-y-3 text-sm font-medium text-slate-700 flex-1">
+              <li className="flex gap-2"><Check className="w-4.5 h-4.5 text-emerald-500 shrink-0" /> 3 free analyses on signup</li>
+              <li className="flex gap-2"><Check className="w-4.5 h-4.5 text-emerald-500 shrink-0" /> Or bring your own OpenAI key — unlimited</li>
+              <li className="flex gap-2"><Check className="w-4.5 h-4.5 text-emerald-500 shrink-0" /> Hook, retention & viral scores</li>
+            </ul>
+            <Link href="/signup" className="mt-7 text-center py-3 rounded-xl font-bold bg-slate-100 hover:bg-slate-200 text-slate-900 transition-colors">Start free</Link>
+          </div>
+          {/* Pay per use */}
+          <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-black/5 shadow-sm p-7 flex flex-col">
+            <h3 className="font-bold text-slate-900 text-lg">Pay per use</h3>
+            <p className="mt-2 text-4xl font-black">$0.99</p>
+            <p className="text-sm text-slate-500 font-medium mt-1">per analysis</p>
+            <ul className="mt-6 space-y-3 text-sm font-medium text-slate-700 flex-1">
+              <li className="flex gap-2"><Check className="w-4.5 h-4.5 text-emerald-500 shrink-0" /> No account required</li>
+              <li className="flex gap-2"><Check className="w-4.5 h-4.5 text-emerald-500 shrink-0" /> One full idea or video analysis</li>
+              <li className="flex gap-2"><Check className="w-4.5 h-4.5 text-emerald-500 shrink-0" /> Pay only when you need it</li>
+            </ul>
+            <Link href="/app" className="mt-7 text-center py-3 rounded-xl font-bold bg-slate-900 hover:bg-slate-800 text-white transition-colors">Buy one analysis</Link>
+          </div>
+          {/* Pro */}
+          <div className="relative bg-gradient-to-b from-pink-500 to-orange-500 rounded-3xl shadow-xl p-7 flex flex-col text-white">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-white text-pink-600 text-xs font-black shadow flex items-center gap-1"><Star className="w-3 h-3 fill-pink-600" /> MOST POPULAR</div>
+            <h3 className="font-bold text-lg">Pro</h3>
+            <p className="mt-2 text-4xl font-black">$9<span className="text-lg font-bold opacity-80">/mo</span></p>
+            <p className="text-sm opacity-90 font-medium mt-1">for serious creators</p>
+            <ul className="mt-6 space-y-3 text-sm font-semibold flex-1">
+              <li className="flex gap-2"><Check className="w-4.5 h-4.5 shrink-0" /> Unlimited analyses</li>
+              <li className="flex gap-2"><Check className="w-4.5 h-4.5 shrink-0" /> Idea + full video analysis</li>
+              <li className="flex gap-2"><Check className="w-4.5 h-4.5 shrink-0" /> Saved history & comparisons</li>
+              <li className="flex gap-2"><Check className="w-4.5 h-4.5 shrink-0" /> Priority processing</li>
+            </ul>
+            <Link href="/signup" className="mt-7 text-center py-3 rounded-xl font-bold bg-white text-pink-600 hover:bg-pink-50 transition-colors">Go Pro</Link>
           </div>
         </div>
-      ) : (
-        <div className="flex items-center gap-2 relative z-10"><Sparkles className="w-5 h-5 text-white/90" /><span>{label}</span></div>
-      )}
-    </button>
-  );
-}
+      </section>
 
-function ScoreCard({ label, value, color, Icon, delay = '' }: { label: string; value?: number; color: 'pink' | 'emerald' | 'orange'; Icon: any; delay?: string }) {
-  const has = value !== undefined && value !== null;
-  const border = { pink: 'border-pink-200', emerald: 'border-emerald-200', orange: 'border-orange-200' }[color];
-  const bar = { pink: 'bg-pink-500', emerald: 'bg-emerald-500', orange: 'bg-orange-500' }[color];
-  return (
-    <div className={`p-4 rounded-2xl border transition-all duration-500 relative overflow-hidden ${has ? `bg-white ${border} shadow-sm` : 'bg-slate-100/50 border-slate-200/60'}`}>
-      <div className="absolute top-0 right-0 p-3 opacity-[0.03]"><Icon className="w-16 h-16" /></div>
-      <p className="text-slate-500 font-bold text-xs uppercase tracking-wider mb-1">{label}</p>
-      <div className="flex items-baseline gap-1">
-        <span className={`text-3xl font-black transition-colors ${has ? 'text-slate-900' : 'text-slate-300'}`}>{has ? value : '--'}</span>
-        <span className={`font-bold transition-colors ${has ? 'text-slate-400' : 'text-slate-300'}`}>/100</span>
-      </div>
-      <div className="mt-3 w-full bg-slate-200/70 rounded-full h-1.5 overflow-hidden">
-        <div className={`h-1.5 rounded-full transition-all duration-1000 ${delay} ease-out ${has ? bar : 'bg-transparent'}`} style={{ width: `${has ? value : 0}%` }}></div>
-      </div>
+      {/* FAQ */}
+      <section className="max-w-3xl mx-auto px-5 sm:px-8 py-14">
+        <h2 className="text-center text-3xl sm:text-4xl font-extrabold tracking-tight mb-10">Questions, answered</h2>
+        <div className="space-y-4">
+          {FAQ.map((f) => (
+            <div key={f.q} className="bg-white/70 backdrop-blur-xl rounded-2xl border border-black/5 p-6">
+              <h3 className="font-bold text-slate-900 mb-2 flex items-start gap-2"><span className="text-pink-500">Q.</span>{f.q}</h3>
+              <p className="text-slate-600 font-medium text-sm leading-relaxed pl-6">{f.a}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="max-w-4xl mx-auto px-5 sm:px-8 py-16 text-center">
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-black/5 shadow-xl p-10 sm:p-14">
+          <h2 className="text-3xl sm:text-4xl font-black tracking-tight">Stop guessing. Start scoring.</h2>
+          <p className="mt-4 text-lg text-slate-600 font-medium max-w-xl mx-auto">Find out if your next video has what it takes — in the next 60 seconds.</p>
+          <Link href="/signup" className="mt-8 inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl text-lg font-bold text-white bg-gradient-to-r from-pink-500 to-orange-500 shadow-[0_10px_30px_rgba(236,72,153,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all">
+            Analyze my hook free <ArrowRight className="w-5 h-5" />
+          </Link>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="max-w-6xl mx-auto px-5 sm:px-8 py-10 border-t border-black/5 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <Logo />
+        <p className="text-sm text-slate-500 font-medium">© {new Date().getFullYear()} VidAnalyzer · AI feedback for creators</p>
+        <div className="flex gap-4 text-sm font-bold text-slate-600">
+          <Link href="/app" className="hover:text-slate-900">Open app</Link>
+          <Link href="/login" className="hover:text-slate-900">Log in</Link>
+        </div>
+      </footer>
     </div>
   );
 }
