@@ -180,7 +180,7 @@ export default function Landing() {
           <div className="relative bg-gradient-to-b from-pink-500 to-orange-500 rounded-3xl shadow-xl p-7 flex flex-col text-white">
             <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-white text-pink-600 text-xs font-black shadow flex items-center gap-1"><Star className="w-3 h-3 fill-pink-600" /> MOST POPULAR</div>
             <h3 className="font-bold text-lg">Pro</h3>
-            <p className="mt-2 text-4xl font-black">$9<span className="text-lg font-bold opacity-80">/mo</span></p>
+            <p className="mt-2 text-4xl font-black">€9.99<span className="text-lg font-bold opacity-80">/mo</span></p>
             <p className="text-sm opacity-90 font-medium mt-1">for serious creators</p>
             <ul className="mt-6 space-y-3 text-sm font-semibold flex-1">
               <li className="flex gap-2"><Check className="w-4.5 h-4.5 shrink-0" /> Unlimited analyses</li>
