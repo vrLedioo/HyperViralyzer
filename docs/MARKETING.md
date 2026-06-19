@@ -15,7 +15,7 @@ social media managers, and agencies who live or die by the first 5 seconds.
 hook was weak *after* publishing. There's no cheap, instant way to pressure-test an idea.
 
 **The promise:** Paste a hook (or upload the clip) and get an objective Hook / Retention / Viral
-score in seconds, plus the exact fix — for free to start, $0.99 one-off, or $9/mo unlimited.
+score in seconds, plus the exact fix — free to start, top-up credit packs, or $9/mo unlimited.
 
 **Why it's different:** It scores the *hook specifically* (not generic "video SEO"), works on both
 raw ideas and real uploaded video (auto-transcribed), and gives blunt, actionable feedback — not vague tips.
@@ -46,8 +46,8 @@ hooks, retention, the algorithm* — the words creators actually use. Confident,
 > scores in seconds: **Hook strength, Retention, and Viral potential**, plus blunt feedback on
 > exactly what to fix.
 >
-> It's free to try (3 analyses, or bring your own OpenAI key for unlimited). $0.99 per analysis with
-> no account, or $9/mo unlimited.
+> It's free to try (3 credits, or bring your own OpenAI key for unlimited). Top up a credit pack
+> anytime, or go $9/mo unlimited.
 >
 > Would love your honest feedback — especially: what would make this a daily tool for you?
 
@@ -72,7 +72,7 @@ actually said. No more guessing whether the open lands.
 
 4/ Pricing is creator-friendly:
 • Free: 3 analyses (or bring your own OpenAI key, unlimited)
-• $0.99 per analysis, no account
+• Top up credit packs as you go
 • $9/mo unlimited + saved history
 
 5/ It's live now. Score your next video before you waste an edit on it 👇

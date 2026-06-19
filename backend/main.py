@@ -68,12 +68,16 @@ def read_root():
 
 
 class ConfigResponse(BaseModel):
-    billing_enabled: bool          # pay-per-use available
+    payment_provider: str          # "none" | "stripe" | "lemonsqueezy"
+    billing_enabled: bool          # any paid option available
     subscription_enabled: bool     # subscription checkout available
+    credits_purchase_enabled: bool # logged-in credit-pack top-up (Lemon Squeezy)
+    pay_per_use_enabled: bool      # anonymous one-off (Stripe)
     byok_enabled: bool             # users may supply their own OpenAI key
     server_llm_ready: bool         # server can analyze without a caller key
-    provider: str                  # "local" | "openai" | "custom"
+    ai_provider: str               # "local" | "openai" | "custom"
     pay_per_use_cents: int
+    credit_pack_size: int
     free_credits_on_signup: int
     idea_credit_cost: int
     video_credit_cost: int
@@ -81,19 +85,23 @@ class ConfigResponse(BaseModel):
 
 @app.get("/api/config", response_model=ConfigResponse)
 def get_config():
-    """Public capability flags so the frontend can adapt (e.g. hide billing
-    buttons when Stripe is not configured)."""
+    """Public capability flags so the frontend can adapt (which billing buttons
+    to show, which AI provider, credit costs, etc.)."""
     if settings.llm_base_url:
-        provider = "local" if "11434" in settings.llm_base_url else "custom"
+        ai_provider = "local" if "11434" in settings.llm_base_url else "custom"
     else:
-        provider = "openai"
+        ai_provider = "openai"
     return ConfigResponse(
-        billing_enabled=bool(settings.stripe_secret_key),
-        subscription_enabled=bool(settings.stripe_secret_key and settings.stripe_subscription_price_id),
+        payment_provider=settings.payment_provider,
+        billing_enabled=settings.billing_enabled,
+        subscription_enabled=settings.subscription_enabled,
+        credits_purchase_enabled=settings.credits_purchase_enabled,
+        pay_per_use_enabled=settings.pay_per_use_enabled,
         byok_enabled=True,
         server_llm_ready=server_llm_configured(),
-        provider=provider,
+        ai_provider=ai_provider,
         pay_per_use_cents=settings.pay_per_use_amount_cents,
+        credit_pack_size=settings.credit_pack_size,
         free_credits_on_signup=settings.free_credits_on_signup,
         idea_credit_cost=settings.idea_credit_cost,
         video_credit_cost=settings.video_credit_cost,

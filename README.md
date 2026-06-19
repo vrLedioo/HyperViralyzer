@@ -7,18 +7,22 @@ potential**, and returns actionable feedback. Two modes:
 - **Video Upload** — upload a clip; we extract the audio (ffmpeg), transcribe it (OpenAI
   Whisper), and score the *real* hook.
 
-## Monetization (three ways to use it)
+## Monetization
 
 | Path | Account? | Cost | Notes |
 |------|----------|------|-------|
-| **BYOK** | No | Free | User pastes their own OpenAI key. |
-| **Pay-per-use** | No | $0.99 | Stripe checkout → single-use token grants one analysis. |
-| **Subscription** | Yes | Recurring | Unlimited analyses + saved history. New accounts get 3 free credits. |
+| **BYOK** | No | Free | User pastes their own OpenAI key (unlimited). |
+| **Free credits** | Yes | Free | 3 starter credits on signup (idea = 1, video = 3). |
+| **Credit packs** | Yes | One-off | Top up credits anytime (Lemon Squeezy). |
+| **Subscription** | Yes | $9/mo | Unlimited analyses + saved history. |
+
+Payments use **Lemon Squeezy** (a Merchant of Record — works in countries Stripe doesn't, e.g.
+Kosovo, and handles tax/VAT). Stripe is also supported via `PAYMENT_PROVIDER=stripe`.
 
 ## Tech stack
 
 - **Backend:** FastAPI + SQLModel (SQLite locally, Postgres-ready), OpenAI (`gpt-4o-mini` +
-  `whisper-1`), Stripe, JWT auth (PyJWT + bcrypt).
+  `whisper-1`), Lemon Squeezy / Stripe, JWT auth (PyJWT + bcrypt).
 - **Frontend:** Next.js 16 (App Router), React 19, Tailwind v4, lucide-react.
 
 ## Prerequisites
@@ -32,8 +36,7 @@ potential**, and returns actionable feedback. Two modes:
   - **OpenAI key:** set `OPENAI_API_KEY` and leave `LLM_BASE_URL` empty.
   - **Other OpenAI-compatible API:** e.g. Groq's free tier — set `LLM_BASE_URL`,
     `LLM_API_KEY`, `LLM_MODEL`.
-- A **Stripe** account in test mode + the **Stripe CLI** (for local webhooks) — only needed
-  to exercise billing
+- A **Lemon Squeezy** account — only needed to exercise billing (see [docs/GO-LIVE.md](docs/GO-LIVE.md))
 
 ### Keyless local setup (no OpenAI key)
 
@@ -75,13 +78,10 @@ npm run dev
 ```
 Landing page: http://localhost:3000 · the app itself: http://localhost:3000/app
 
-### Stripe webhooks (local, for subscriptions)
-```bash
-stripe listen --forward-to localhost:8000/api/stripe/webhook
-# copy the printed whsec_... into backend/.env as STRIPE_WEBHOOK_SECRET
-```
-Create a recurring Price in the Stripe dashboard and put its id in
-`STRIPE_SUBSCRIPTION_PRICE_ID`. Test card: `4242 4242 4242 4242`, any future expiry/CVC.
+### Billing (local)
+Billing is off by default (`PAYMENT_PROVIDER=none`) — the app runs fully without it. To exercise
+payments locally, set up Lemon Squeezy (test mode) per [docs/GO-LIVE.md](docs/GO-LIVE.md) and point
+its webhook at `http://localhost:8008/api/lemonsqueezy/webhook` (use a tunnel like ngrok/cloudflared).
 
 ## API overview
 
@@ -93,10 +93,11 @@ Create a recurring Price in the Stripe dashboard and put its id in
 | POST | `/api/analyze-video` | Upload a video → returns an opaque job token |
 | GET  | `/api/jobs/{token}` | Poll a video job (transcribing → scoring → done); owner-only |
 | GET  | `/api/history` | Logged-in user's past analyses |
-| GET  | `/api/config` | Public capability flags (billing on/off, provider, etc.) |
-| POST | `/api/checkout/pay-per-use` · `/subscription` | Start a Stripe checkout |
-| POST | `/api/checkout/verify` | Mint a single-use token after a paid checkout |
-| POST | `/api/stripe/webhook` | Fulfill subscription activation/cancellation |
+| GET  | `/api/config` | Public capability flags (provider, billing, credit costs, etc.) |
+| POST | `/api/checkout/subscription` | Start a subscription checkout (Lemon Squeezy / Stripe) |
+| POST | `/api/checkout/credits` | Buy a credit pack (Lemon Squeezy) |
+| POST | `/api/checkout/pay-per-use` · `/verify` | Anonymous one-off (Stripe only) |
+| POST | `/api/lemonsqueezy/webhook` · `/api/stripe/webhook` | Fulfill orders/subscriptions |
 
 ## Access model
 
@@ -116,10 +117,11 @@ account credits → single-use pay token. If none apply, the request is rejected
 ## Security & production
 
 - **`APP_ENV=production`** turns on fail-fast startup guards: the app refuses to boot with a
-  weak/default `JWT_SECRET` (< 32 chars or a known placeholder) or with Stripe enabled but no
-  `STRIPE_WEBHOOK_SECRET`. Local dev (`APP_ENV=development`, the default) relaxes these.
-- **Webhooks are always signature-verified** — there is no unsigned fallback. `/checkout/verify`
-  also validates the session's mode, paid status, currency, and exact amount.
+  weak/default `JWT_SECRET` (< 32 chars or a known placeholder) or with a payment provider enabled
+  but no webhook signing secret. Local dev (`APP_ENV=development`, the default) relaxes these.
+- **Webhooks are always signature-verified** (Lemon Squeezy HMAC-SHA256 / Stripe signature) — there
+  is no unsigned fallback. Credit grants are idempotent; the Stripe one-off `/checkout/verify` also
+  validates the session's mode, paid status, currency, and exact amount.
 - **Video jobs use unguessable tokens** and are owner-scoped (no IDOR via sequential ids).
 - **Upload/DoS guards:** in-flight job cap (429), `Content-Length` pre-check, ffmpeg timeout,
   and a lock around the local Whisper model.

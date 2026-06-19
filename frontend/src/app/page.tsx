@@ -27,7 +27,7 @@ const FEATURES = [
 
 const FAQ = [
   { q: 'Does it analyze real videos or just text?', a: 'Both. Test an idea by pasting a title + hook, or upload an actual clip — we transcribe the audio and score the real hook you delivered.' },
-  { q: 'Do I need an account?', a: 'No. You can pay $0.99 for a single analysis with no signup, or bring your own OpenAI key for free. An account gets you 3 free analyses, saved history, and the unlimited plan.' },
+  { q: 'Do I need an account?', a: 'You can use it free with no account by bringing your own OpenAI key. A free account gives you 3 starter credits and saved history — then top up a credit pack or go unlimited with Pro whenever you want.' },
   { q: 'How fast is it?', a: 'Idea scoring takes a few seconds. Video analysis runs transcription then scoring and is usually done well under a minute.' },
   { q: 'What platforms is it for?', a: 'Anything short-form-first: YouTube, TikTok, Instagram Reels, and Shorts. The hook principles are universal.' },
   { q: 'Is my data private?', a: 'Your analyses are tied to your account and only visible to you. Uploaded videos are deleted after processing.' },
@@ -164,17 +164,17 @@ export default function Landing() {
             </ul>
             <Link href="/signup" className="mt-7 text-center py-3 rounded-xl font-bold bg-slate-100 hover:bg-slate-200 text-slate-900 transition-colors">Start free</Link>
           </div>
-          {/* Pay per use */}
+          {/* Credit pack */}
           <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-black/5 shadow-sm p-7 flex flex-col">
-            <h3 className="font-bold text-slate-900 text-lg">Pay per use</h3>
-            <p className="mt-2 text-4xl font-black">$0.99</p>
-            <p className="text-sm text-slate-500 font-medium mt-1">per analysis</p>
+            <h3 className="font-bold text-slate-900 text-lg">Credit pack</h3>
+            <p className="mt-2 text-4xl font-black">Top up</p>
+            <p className="text-sm text-slate-500 font-medium mt-1">pay as you go</p>
             <ul className="mt-6 space-y-3 text-sm font-medium text-slate-700 flex-1">
-              <li className="flex gap-2"><Check className="w-4.5 h-4.5 text-emerald-500 shrink-0" /> No account required</li>
-              <li className="flex gap-2"><Check className="w-4.5 h-4.5 text-emerald-500 shrink-0" /> One full idea or video analysis</li>
-              <li className="flex gap-2"><Check className="w-4.5 h-4.5 text-emerald-500 shrink-0" /> Pay only when you need it</li>
+              <li className="flex gap-2"><Check className="w-4.5 h-4.5 text-emerald-500 shrink-0" /> Buy a bundle of credits, no subscription</li>
+              <li className="flex gap-2"><Check className="w-4.5 h-4.5 text-emerald-500 shrink-0" /> Idea = 1 credit · video = 3</li>
+              <li className="flex gap-2"><Check className="w-4.5 h-4.5 text-emerald-500 shrink-0" /> Credits never expire</li>
             </ul>
-            <Link href="/app" className="mt-7 text-center py-3 rounded-xl font-bold bg-slate-900 hover:bg-slate-800 text-white transition-colors">Buy one analysis</Link>
+            <Link href="/signup" className="mt-7 text-center py-3 rounded-xl font-bold bg-slate-900 hover:bg-slate-800 text-white transition-colors">Buy credits</Link>
           </div>
           {/* Pro */}
           <div className="relative bg-gradient-to-b from-pink-500 to-orange-500 rounded-3xl shadow-xl p-7 flex flex-col text-white">

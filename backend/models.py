@@ -23,6 +23,8 @@ class User(SQLModel, table=True):
     # "none" | "active" | "canceled"
     subscription_status: str = "none"
     stripe_customer_id: Optional[str] = Field(default=None, index=True)
+    # Provider subscription id (Lemon Squeezy / Stripe) for cancel matching.
+    subscription_id: Optional[str] = Field(default=None, index=True)
     created_at: datetime = Field(default_factory=_utcnow)
 
 

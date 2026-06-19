@@ -22,11 +22,18 @@ services:
           property: connectionString
       - key: OPENAI_API_KEY
         sync: false            # set in dashboard
-      - key: STRIPE_SECRET_KEY
+      # --- Payments: Lemon Squeezy (works in Kosovo). Set these in the dashboard. ---
+      - key: PAYMENT_PROVIDER
+        value: lemonsqueezy
+      - key: LEMONSQUEEZY_API_KEY
         sync: false
-      - key: STRIPE_WEBHOOK_SECRET
+      - key: LEMONSQUEEZY_STORE_ID
         sync: false
-      - key: STRIPE_SUBSCRIPTION_PRICE_ID
+      - key: LEMONSQUEEZY_WEBHOOK_SECRET
+        sync: false
+      - key: LEMONSQUEEZY_SUBSCRIPTION_VARIANT_ID
+        sync: false
+      - key: LEMONSQUEEZY_CREDITS_VARIANT_ID
         sync: false
       - key: FRONTEND_URL
         sync: false            # your Vercel URL, e.g. https://vidanalyzer.vercel.app

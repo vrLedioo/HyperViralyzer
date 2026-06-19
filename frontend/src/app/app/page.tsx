@@ -52,12 +52,16 @@ interface HistoryItem {
 }
 
 interface AppConfig {
+  payment_provider: string;
   billing_enabled: boolean;
   subscription_enabled: boolean;
+  credits_purchase_enabled: boolean;
+  pay_per_use_enabled: boolean;
   byok_enabled: boolean;
   server_llm_ready: boolean;
-  provider: string;
+  ai_provider: string;
   pay_per_use_cents: number;
+  credit_pack_size: number;
   free_credits_on_signup: number;
   idea_credit_cost: number;
   video_credit_cost: number;
@@ -154,6 +158,12 @@ export default function Home() {
     } else if (params.get('subscribed') === 'cancelled') {
       cleanUrl();
       setNotice('Subscription checkout cancelled.');
+    } else if (params.get('credits') === 'success') {
+      cleanUrl();
+      setNotice('Payment received — your credits will appear in a moment. ✨');
+      // Webhook may lag a second or two; refresh now and shortly after.
+      refresh();
+      setTimeout(() => refresh(), 4000);
     }
   }, [refresh]);
 
@@ -258,6 +268,16 @@ export default function Home() {
       if (data.url) window.location.href = data.url;
     } catch (err: any) {
       setError(err.message || 'Could not initiate payment.');
+    }
+  };
+
+  const handleBuyCredits = async () => {
+    if (!user) { window.location.href = '/signup'; return; }
+    try {
+      const data = await api<{ url: string }>('/api/checkout/credits', { method: 'POST' });
+      if (data.url) window.location.href = data.url;
+    } catch (err: any) {
+      setError(err.message || 'Could not start checkout.');
     }
   };
 
@@ -386,11 +406,18 @@ export default function Home() {
               className="w-full text-xs px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 focus:border-pink-500 outline-none" />
           )}
 
-          {(config?.billing_enabled || config?.subscription_enabled) && <div className="h-px w-full bg-slate-100"></div>}
+          {config?.billing_enabled && <div className="h-px w-full bg-slate-100"></div>}
 
-          {config?.billing_enabled && (
+          {/* Anonymous one-off (Stripe only) */}
+          {config?.pay_per_use_enabled && (
             <button onClick={handlePayPerUse} className="flex items-center gap-2 w-full p-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg transition-colors text-sm font-semibold justify-center cursor-pointer">
               <CreditCard className="w-4 h-4" /> Pay per use (${(config.pay_per_use_cents / 100).toFixed(2)})
+            </button>
+          )}
+          {/* Credit pack top-up (Lemon Squeezy) */}
+          {config?.credits_purchase_enabled && (
+            <button onClick={handleBuyCredits} className="flex items-center gap-2 w-full p-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg transition-colors text-sm font-semibold justify-center cursor-pointer">
+              <CreditCard className="w-4 h-4" /> Buy {config.credit_pack_size} credits
             </button>
           )}
           {config?.subscription_enabled && user?.subscription_status !== 'active' && (
@@ -398,9 +425,9 @@ export default function Home() {
               <Crown className="w-4 h-4" /> Go Pro (unlimited)
             </button>
           )}
-          {!config?.billing_enabled && !config?.subscription_enabled && (
+          {!config?.billing_enabled && (
             <p className="text-xs text-slate-400 font-medium leading-relaxed">
-              {config?.provider === 'local' ? 'Running on a free local AI model. ' : ''}
+              {config?.ai_provider === 'local' ? 'Running on a free local AI model. ' : ''}
               {user ? 'Use your account credits, or add your own OpenAI key above.' : 'Sign up for free credits, or add your own OpenAI key above.'}
             </p>
           )}

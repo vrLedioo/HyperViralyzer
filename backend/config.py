@@ -50,11 +50,27 @@ class Settings(BaseSettings):
     idea_credit_cost: int = 1
     video_credit_cost: int = 3
 
-    # --- Stripe ---
+    # --- Payments ---
+    # Active provider: "none" | "lemonsqueezy" | "stripe".
+    # Stripe is unavailable in some countries (e.g. Kosovo); Lemon Squeezy is a
+    # Merchant of Record that works there and handles tax/VAT + payouts.
+    payment_provider: str = "none"
+
+    # Credits granted per credit-pack purchase (one-time top-up).
+    credit_pack_size: int = 30
+
+    # --- Stripe (used when payment_provider == "stripe") ---
     stripe_secret_key: str | None = None
     stripe_webhook_secret: str | None = None
     stripe_subscription_price_id: str | None = None  # recurring price (monthly)
-    pay_per_use_amount_cents: int = 99  # $0.99 single analysis
+    pay_per_use_amount_cents: int = 99  # $0.99 single analysis (anonymous)
+
+    # --- Lemon Squeezy (used when payment_provider == "lemonsqueezy") ---
+    lemonsqueezy_api_key: str | None = None
+    lemonsqueezy_store_id: str | None = None
+    lemonsqueezy_webhook_secret: str | None = None
+    lemonsqueezy_subscription_variant_id: str | None = None  # Pro subscription variant
+    lemonsqueezy_credits_variant_id: str | None = None        # one-time credit-pack variant
 
     # --- URLs ---
     # Canonical frontend origin (used for Stripe success/cancel redirects).
@@ -74,6 +90,33 @@ class Settings(BaseSettings):
     max_active_video_jobs: int = 5
     # Cap on heavy transcriptions running at once.
     max_concurrent_transcriptions: int = 2
+
+    # --- Billing capability flags (provider-neutral, used by /api/config + gate) ---
+    @property
+    def subscription_enabled(self) -> bool:
+        if self.payment_provider == "stripe":
+            return bool(self.stripe_secret_key and self.stripe_subscription_price_id)
+        if self.payment_provider == "lemonsqueezy":
+            return bool(self.lemonsqueezy_api_key and self.lemonsqueezy_subscription_variant_id)
+        return False
+
+    @property
+    def credits_purchase_enabled(self) -> bool:
+        # Logged-in credit-pack top-up (Lemon Squeezy).
+        if self.payment_provider == "lemonsqueezy":
+            return bool(self.lemonsqueezy_api_key and self.lemonsqueezy_credits_variant_id)
+        return False
+
+    @property
+    def pay_per_use_enabled(self) -> bool:
+        # Anonymous one-off purchase (Stripe only).
+        if self.payment_provider == "stripe":
+            return bool(self.stripe_secret_key)
+        return False
+
+    @property
+    def billing_enabled(self) -> bool:
+        return self.subscription_enabled or self.credits_purchase_enabled or self.pay_per_use_enabled
 
     @property
     def is_production(self) -> bool:
@@ -98,10 +141,15 @@ class Settings(BaseSettings):
                     "APP_ENV is production. Generate one: python -c \"import secrets; "
                     "print(secrets.token_urlsafe(32))\""
                 )
-            if self.stripe_secret_key and not self.stripe_webhook_secret:
+            if self.payment_provider == "stripe" and self.stripe_secret_key and not self.stripe_webhook_secret:
                 raise ValueError(
-                    "STRIPE_WEBHOOK_SECRET is required when STRIPE_SECRET_KEY is set "
+                    "STRIPE_WEBHOOK_SECRET is required when Stripe is the active provider "
                     "(unsigned webhooks are never trusted)."
+                )
+            if self.payment_provider == "lemonsqueezy" and self.lemonsqueezy_api_key and not self.lemonsqueezy_webhook_secret:
+                raise ValueError(
+                    "LEMONSQUEEZY_WEBHOOK_SECRET is required when Lemon Squeezy is the active "
+                    "provider (unsigned webhooks are never trusted)."
                 )
         return self
 
