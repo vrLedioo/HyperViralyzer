@@ -75,6 +75,8 @@ class ConfigResponse(BaseModel):
     provider: str                  # "local" | "openai" | "custom"
     pay_per_use_cents: int
     free_credits_on_signup: int
+    idea_credit_cost: int
+    video_credit_cost: int
 
 
 @app.get("/api/config", response_model=ConfigResponse)
@@ -93,4 +95,6 @@ def get_config():
         provider=provider,
         pay_per_use_cents=settings.pay_per_use_amount_cents,
         free_credits_on_signup=settings.free_credits_on_signup,
+        idea_credit_cost=settings.idea_credit_cost,
+        video_credit_cost=settings.video_credit_cost,
     )

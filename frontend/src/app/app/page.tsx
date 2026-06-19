@@ -59,6 +59,8 @@ interface AppConfig {
   provider: string;
   pay_per_use_cents: number;
   free_credits_on_signup: number;
+  idea_credit_cost: number;
+  video_credit_cost: number;
 }
 
 type Mode = 'idea' | 'video';
@@ -470,6 +472,11 @@ export default function Home() {
                     </div>
 
                     <SubmitButton isLoading={isLoading} disabled={!canSubmit} label="Analyze Idea" statusLabel={statusLabel} />
+                    {user && user.subscription_status !== 'active' && !userApiKey && config && (
+                      <p className="text-center text-xs text-slate-400 font-medium mt-2">
+                        Uses {config.idea_credit_cost} credit{config.idea_credit_cost === 1 ? '' : 's'} · you have {user.credits}
+                      </p>
+                    )}
                   </form>
                 </>
               ) : (
@@ -499,6 +506,11 @@ export default function Home() {
                   </label>
 
                   <SubmitButton isLoading={isLoading} disabled={!canSubmit} label="Analyze Video" statusLabel={statusLabel} />
+                  {user && user.subscription_status !== 'active' && !userApiKey && config && (
+                    <p className="text-center text-xs text-slate-400 font-medium mt-2">
+                      Uses {config.video_credit_cost} credits · you have {user.credits}
+                    </p>
+                  )}
                 </form>
               )}
             </div>

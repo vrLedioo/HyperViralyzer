@@ -45,11 +45,12 @@ class JobStatusResponse(BaseModel):
     created_at: datetime
 
 
-def _apply_consumption_bg(session: Session, method: str, user_id: Optional[int], session_id: Optional[str]):
+def _apply_consumption_bg(session: Session, method: str, user_id: Optional[int],
+                         session_id: Optional[str], cost: int):
     if method == "credit" and user_id is not None:
         user = session.get(User, user_id)
         if user:
-            user.credits = max(0, user.credits - 1)
+            user.credits = max(0, user.credits - cost)
             session.add(user)
             session.commit()
     elif method == "pay-token" and session_id:
@@ -58,7 +59,7 @@ def _apply_consumption_bg(session: Session, method: str, user_id: Optional[int],
 
 
 def _process_video(job_id: int, file_path: str, title: str, byok_key: Optional[str],
-                   method: str, user_id: Optional[int], session_id: Optional[str]):
+                   method: str, user_id: Optional[int], session_id: Optional[str], cost: int):
     """Runs in the background. Owns its own DB session."""
     with Session(engine) as session:
         job = session.get(VideoJob, job_id)
@@ -86,7 +87,7 @@ def _process_video(job_id: int, file_path: str, title: str, byok_key: Optional[s
             session.commit()
             session.refresh(analysis)
 
-            _apply_consumption_bg(session, method, user_id, session_id)
+            _apply_consumption_bg(session, method, user_id, session_id, cost)
 
             job.status = "done"
             job.analysis_id = analysis.id
@@ -133,6 +134,7 @@ async def analyze_video(
     try:
         grant = resolve_access(
             user=user, user_api_key=user_api_key, pay_token=pay_token, session=session,
+            cost=settings.video_credit_cost,
         )
     except AccessDenied as e:
         raise HTTPException(status_code=e.status_code, detail=str(e))
@@ -187,7 +189,7 @@ async def analyze_video(
 
     background.add_task(
         _process_video, job.id, file_path, title, grant.byok_key,
-        grant.method, user.id if user else None, grant.session_id,
+        grant.method, user.id if user else None, grant.session_id, grant.credits_cost,
     )
     return JobResponse(job_id=job.token, status=job.status)
 

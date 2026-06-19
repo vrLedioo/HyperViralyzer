@@ -158,7 +158,7 @@ export default function Landing() {
             <p className="mt-2 text-4xl font-black">$0</p>
             <p className="text-sm text-slate-500 font-medium mt-1">to get started</p>
             <ul className="mt-6 space-y-3 text-sm font-medium text-slate-700 flex-1">
-              <li className="flex gap-2"><Check className="w-4.5 h-4.5 text-emerald-500 shrink-0" /> 3 free analyses on signup</li>
+              <li className="flex gap-2"><Check className="w-4.5 h-4.5 text-emerald-500 shrink-0" /> 3 free credits (idea = 1, video = 3)</li>
               <li className="flex gap-2"><Check className="w-4.5 h-4.5 text-emerald-500 shrink-0" /> Or bring your own OpenAI key — unlimited</li>
               <li className="flex gap-2"><Check className="w-4.5 h-4.5 text-emerald-500 shrink-0" /> Hook, retention & viral scores</li>
             </ul>

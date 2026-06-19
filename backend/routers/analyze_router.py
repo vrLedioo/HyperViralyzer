@@ -8,6 +8,7 @@ from sqlmodel import Session, select
 
 from access import AccessDenied, apply_consumption, resolve_access
 from auth import get_current_user, get_optional_user
+from config import settings
 from db import get_session
 from models import Analysis, User
 from services.scoring import ScoringError, score_content
@@ -79,6 +80,7 @@ def analyze_idea(
             user_api_key=request.user_api_key,
             pay_token=request.pay_token,
             session=session,
+            cost=settings.idea_credit_cost,
         )
     except AccessDenied as e:
         raise HTTPException(status_code=e.status_code, detail=str(e))

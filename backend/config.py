@@ -45,6 +45,11 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
     free_credits_on_signup: int = 3
 
+    # Credit cost per analysis type. Video costs more — it runs Whisper
+    # transcription on top of scoring (~100x the AI cost of a text idea).
+    idea_credit_cost: int = 1
+    video_credit_cost: int = 3
+
     # --- Stripe ---
     stripe_secret_key: str | None = None
     stripe_webhook_secret: str | None = None

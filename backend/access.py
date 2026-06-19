@@ -32,6 +32,7 @@ class AccessGrant:
     byok_key: Optional[str] = None  # only set for the BYOK path
     user: Optional[User] = None
     session_id: Optional[str] = None
+    credits_cost: int = 1  # credits to spend (credit path only)
 
 
 def _valid_pay_session(pay_token: Optional[str], session: Session) -> Optional[str]:
@@ -57,10 +58,11 @@ def resolve_access(
     user_api_key: Optional[str],
     pay_token: Optional[str],
     session: Session,
+    cost: int = 1,
 ) -> AccessGrant:
     # 1. BYOK — always free, uses the caller's own OpenAI key.
     if user_api_key:
-        return AccessGrant(method="byok", byok_key=user_api_key)
+        return AccessGrant(method="byok", byok_key=user_api_key, credits_cost=cost)
 
     # Every other path uses the server's configured provider.
     if not server_llm_configured():
@@ -72,16 +74,24 @@ def resolve_access(
 
     # 2. Active subscription — unlimited.
     if user and user.subscription_status == "active":
-        return AccessGrant(method="subscription", user=user)
+        return AccessGrant(method="subscription", user=user, credits_cost=cost)
 
-    # 3. Account credits.
-    if user and user.credits > 0:
-        return AccessGrant(method="credit", user=user)
+    # 3. Account credits (must have enough for this analysis type).
+    if user and user.credits >= cost:
+        return AccessGrant(method="credit", user=user, credits_cost=cost)
 
     # 4. Single-use pay token.
     session_id = _valid_pay_session(pay_token, session)
     if session_id:
-        return AccessGrant(method="pay-token", session_id=session_id)
+        return AccessGrant(method="pay-token", session_id=session_id, credits_cost=cost)
+
+    # Helpful message when the user has some credits but not enough for this type.
+    if user and 0 < user.credits < cost:
+        raise AccessDenied(
+            f"This analysis needs {cost} credits, but you have {user.credits}. "
+            "Buy more, subscribe for unlimited, or use your own OpenAI key.",
+            status_code=402,
+        )
 
     raise AccessDenied(
         "No usable access. Buy a single analysis, subscribe, use account credits, "
@@ -91,9 +101,9 @@ def resolve_access(
 
 
 def apply_consumption(grant: AccessGrant, session: Session) -> None:
-    """Spend the credit / mark the pay token used. Call only after success."""
+    """Spend the credits / mark the pay token used. Call only after success."""
     if grant.method == "credit" and grant.user is not None:
-        grant.user.credits = max(0, grant.user.credits - 1)
+        grant.user.credits = max(0, grant.user.credits - grant.credits_cost)
         session.add(grant.user)
         session.commit()
     elif grant.method == "pay-token" and grant.session_id:
