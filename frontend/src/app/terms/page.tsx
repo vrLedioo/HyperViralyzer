@@ -2,8 +2,8 @@ import Link from 'next/link';
 import { Play } from 'lucide-react';
 
 export const metadata = {
-  title: 'Terms of Service — VidAnalyzer',
-  description: 'The terms for using VidAnalyzer.',
+  title: 'Terms of Service — ViralYzer',
+  description: 'The terms for using ViralYzer.',
 };
 
 export default function Terms() {
@@ -13,7 +13,7 @@ export default function Terms() {
         <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center shadow-md">
           <Play className="w-4 h-4 text-white fill-white ml-0.5" />
         </div>
-        <span className="text-lg font-bold tracking-tight">VidAnalyzer</span>
+        <span className="text-lg font-bold tracking-tight">ViralYzer</span>
       </Link>
 
       <div className="mb-6 rounded-xl bg-amber-50 border border-amber-200 p-4 text-sm text-amber-900">
@@ -27,13 +27,13 @@ export default function Terms() {
 
       <div className="prose-sm mt-8 space-y-6 text-slate-700 leading-relaxed [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-slate-900 [&_h2]:mt-8 [&_h2]:mb-2 [&_li]:ml-5 [&_li]:list-disc [&_a]:text-pink-600 [&_a]:underline">
         <p>
-          These Terms govern your use of VidAnalyzer (the &ldquo;Service&rdquo;), operated by
-          [your name / business], [country — e.g. Kosovo]. By using the Service you agree to these Terms.
+          These Terms govern your use of ViralYzer (the &ldquo;Service&rdquo;), operated by
+          [your name / business], Kosovo. By using the Service you agree to these Terms.
         </p>
 
         <h2>The Service</h2>
         <p>
-          VidAnalyzer uses AI to score video ideas and uploaded videos for hook strength, retention,
+          ViralYzer uses AI to score video ideas and uploaded videos for hook strength, retention,
           and viral potential, and to give feedback. <strong>Scores and feedback are AI-generated
           estimates for guidance only — they are not predictions or guarantees of views, revenue, or
           performance.</strong>
@@ -92,7 +92,7 @@ export default function Terms() {
         </p>
 
         <h2>Governing law</h2>
-        <p>These Terms are governed by the laws of [your jurisdiction — e.g. Kosovo].</p>
+        <p>These Terms are governed by the laws of Kosovo.</p>
 
         <h2>Changes</h2>
         <p>We may update these Terms; the &ldquo;Last updated&rdquo; date reflects the latest version.</p>

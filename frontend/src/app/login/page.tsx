@@ -35,7 +35,7 @@ export default function LoginPage() {
           <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center shadow-md">
             <Play className="w-5 h-5 text-white fill-white ml-0.5" />
           </div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">VidAnalyzer</h1>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">ViralYzer</h1>
         </div>
 
         <h2 className="text-2xl font-extrabold text-slate-900 mb-1">Welcome back</h2>

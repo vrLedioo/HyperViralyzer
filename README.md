@@ -1,20 +1,27 @@
-# VidAnalyzer — AI Video & Idea Analyzer
+# ViralYzer — AI Growth Toolkit for Creators
 
-A SaaS that scores short-form video content for **hook strength, retention, and viral
-potential**, and returns actionable feedback. Two modes:
+A SaaS that turns a video idea or clip into a full **growth report**: hook / retention / viral
+scores (0–100) with actionable feedback, the **best hashtags** to use, and the **best time to
+post** — all tuned to your platform and audience. Two modes:
 
-- **Idea Tester** — paste a title + the first 30–60s of your script; get instant AI scoring.
+- **Idea Tester** — paste a title + the first 30–60s of your script; get an instant report.
 - **Video Upload** — upload a clip; we extract the audio (ffmpeg), transcribe it (OpenAI
-  Whisper), and score the *real* hook.
+  Whisper), and analyze the *real* hook you delivered.
 
 ## Monetization
 
-| Path | Account? | Cost | Notes |
-|------|----------|------|-------|
+Subscriptions grant a **monthly credit allowance** (refills each renewal, no rollover); credit
+packs are one-time top-ups that never expire. An idea report costs **1 credit**; a video report
+costs **5** (it includes transcription).
+
+| Path | Account? | Price | Grants |
+|------|----------|-------|--------|
 | **BYOK** | No | Free | User pastes their own OpenAI key (unlimited). |
-| **Free credits** | Yes | Free | 3 starter credits on signup (idea = 1, video = 3). |
-| **Credit packs** | Yes | One-off | Top up credits anytime (Lemon Squeezy). |
-| **Subscription** | Yes | $9/mo | Unlimited analyses + saved history. |
+| **Free** | Yes | Free | 10 starter credits on signup. |
+| **Creator** | Yes | €14/mo | 150 credits / month. |
+| **Pro** | Yes | €29/mo | 500 credits / month + priority. |
+| **Agency** | Yes | €79/mo | 2,000 credits / month + team. |
+| **Credit packs** | Yes | €9 / €29 | 50 or 200 credits, one-off (never expire). |
 
 Payments use **Lemon Squeezy** (a Merchant of Record — works in countries Stripe doesn't, e.g.
 Kosovo, and handles tax/VAT). Stripe is also supported via `PAYMENT_PROVIDER=stripe`.
@@ -101,9 +108,10 @@ its webhook at `http://localhost:8008/api/lemonsqueezy/webhook` (use a tunnel li
 
 ## Access model
 
-Every analysis passes through one gate (`backend/access.py`): BYOK key → active subscription →
-account credits → single-use pay token. If none apply, the request is rejected with `402`
-(no more silent fake scores).
+Every analysis passes through one gate (`backend/access.py`): BYOK key → account credits →
+single-use pay token. Account credits combine a monthly subscription allowance (spent first) and
+purchased pack credits (spent second). If none apply, the request is rejected with `402` (no more
+silent fake scores).
 
 ## Publishing / going live
 

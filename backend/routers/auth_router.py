@@ -29,7 +29,10 @@ class TokenResponse(BaseModel):
 class UserResponse(BaseModel):
     id: int
     email: str
-    credits: int
+    credits: int               # purchased pack credits (never expire)
+    subscription_credits: int  # monthly plan allowance (refills, no rollover)
+    total_credits: int         # what's actually spendable right now
+    plan: str                  # "free" | "creator" | "pro" | "agency"
     subscription_status: str
 
 
@@ -38,6 +41,9 @@ def _user_out(user: User) -> UserResponse:
         id=user.id,
         email=user.email,
         credits=user.credits,
+        subscription_credits=user.subscription_credits,
+        total_credits=user.total_credits,
+        plan=user.plan,
         subscription_status=user.subscription_status,
     )
 

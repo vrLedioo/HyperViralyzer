@@ -2,11 +2,12 @@
 
 An analysis is allowed via exactly one of these paths, checked in order:
   1. BYOK      - caller supplied their own OpenAI key (free, uses OpenAI cloud)
-  2. subscription - logged-in user with an active subscription (unlimited)
-  3. credit    - logged-in user with >= 1 credit (consumes one on success)
-  4. pay-token - a valid single-use token from a paid Stripe checkout
+  2. credit    - logged-in user with enough credits for this analysis type.
+                 A user has two credit buckets: a monthly subscription allowance
+                 (spent first) and purchased pack credits (spent second).
+  3. pay-token - a valid single-use token from a paid Stripe checkout
 
-Paths 2-4 use the server's configured LLM provider, which may be a free local
+Paths 2-3 use the server's configured LLM provider, which may be a free local
 endpoint (Ollama) requiring no key at all.
 """
 from dataclasses import dataclass
@@ -28,7 +29,7 @@ class AccessDenied(Exception):
 
 @dataclass
 class AccessGrant:
-    method: str  # "byok" | "subscription" | "credit" | "pay-token"
+    method: str  # "byok" | "credit" | "pay-token"
     byok_key: Optional[str] = None  # only set for the BYOK path
     user: Optional[User] = None
     session_id: Optional[str] = None
@@ -72,41 +73,45 @@ def resolve_access(
             status_code=503,
         )
 
-    # 2. Active subscription — unlimited.
-    if user and user.subscription_status == "active":
-        return AccessGrant(method="subscription", user=user, credits_cost=cost)
-
-    # 3. Account credits (must have enough for this analysis type).
-    if user and user.credits >= cost:
+    # 2. Account credits — subscription allowance + purchased packs combined.
+    if user and user.total_credits >= cost:
         return AccessGrant(method="credit", user=user, credits_cost=cost)
 
-    # 4. Single-use pay token.
+    # 3. Single-use pay token.
     session_id = _valid_pay_session(pay_token, session)
     if session_id:
         return AccessGrant(method="pay-token", session_id=session_id, credits_cost=cost)
 
     # Helpful message when the user has some credits but not enough for this type.
-    if user and 0 < user.credits < cost:
+    if user and 0 < user.total_credits < cost:
         raise AccessDenied(
-            f"This analysis needs {cost} credits, but you have {user.credits}. "
-            "Buy more, subscribe for unlimited, or use your own OpenAI key.",
+            f"This analysis needs {cost} credits, but you have {user.total_credits}. "
+            "Buy a credit pack, upgrade your plan, or use your own OpenAI key.",
             status_code=402,
         )
 
     raise AccessDenied(
-        "No usable access. Buy a single analysis, subscribe, use account credits, "
-        "or provide your own OpenAI key.",
+        "No usable access. Sign in and use account credits, subscribe to a plan, "
+        "buy a credit pack, or provide your own OpenAI key.",
         status_code=402,
     )
 
 
 def apply_consumption(grant: AccessGrant, session: Session) -> None:
-    """Spend the credits / mark the pay token used. Call only after success."""
+    """Spend the credits / mark the pay token used. Call only after success.
+
+    Subscription (monthly) credits are spent before purchased pack credits, so a
+    user's use-it-or-lose-it allowance is consumed first.
+    """
     if grant.method == "credit" and grant.user is not None:
-        grant.user.credits = max(0, grant.user.credits - grant.credits_cost)
+        remaining = grant.credits_cost
+        from_sub = min(grant.user.subscription_credits, remaining)
+        grant.user.subscription_credits -= from_sub
+        remaining -= from_sub
+        grant.user.credits = max(0, grant.user.credits - remaining)
         session.add(grant.user)
         session.commit()
     elif grant.method == "pay-token" and grant.session_id:
         session.add(RedeemedSession(session_id=grant.session_id))
         session.commit()
-    # byok / subscription consume nothing.
+    # byok consumes nothing.

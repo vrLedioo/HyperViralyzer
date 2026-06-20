@@ -8,8 +8,8 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 
 export const metadata: Metadata = {
-  title: "VidAnalyzer — AI Video & Idea Analysis",
-  description: "Score your video ideas and analyze real videos with AI.",
+  title: "ViralYzer — AI Video Scoring, Hashtags & Best Time to Post",
+  description: "Score your video's hook, retention & viral potential, get the best hashtags, and the best time to post — all in seconds with AI.",
 };
 
 export default function RootLayout({

@@ -1,4 +1,4 @@
-# VidAnalyzer — Brand & Launch Kit
+# ViralYzer — Brand & Launch Kit
 
 Everything you need to position and launch. Copy/paste-ready.
 
@@ -6,81 +6,84 @@ Everything you need to position and launch. Copy/paste-ready.
 
 ## 1. Positioning
 
-**One-liner:** AI that scores your video's hook, retention, and viral potential — before you post.
+**One-liner:** AI that scores your video and hands you the best hashtags + the best time to post — before you publish.
 
 **Who it's for:** YouTube / TikTok / Reels / Shorts creators, faceless-channel operators,
-social media managers, and agencies who live or die by the first 5 seconds.
+social media managers, and agencies who live or die by the first 5 seconds and the algorithm.
 
-**The pain:** Creators spend hours filming and editing videos that flop — and only find out the
-hook was weak *after* publishing. There's no cheap, instant way to pressure-test an idea.
+**The pain:** Creators spend hours filming and editing videos that flop — weak hook, wrong
+hashtags, posted at the wrong time — and only find out *after* publishing. There's no cheap,
+instant way to pressure-test the whole package.
 
-**The promise:** Paste a hook (or upload the clip) and get an objective Hook / Retention / Viral
-score in seconds, plus the exact fix — free to start, top-up credit packs, or $9/mo unlimited.
+**The promise:** Paste a hook (or upload the clip) and get a full report in seconds — Hook /
+Retention / Viral scores, the exact fix, the **best hashtags**, and the **best time to post**.
+Free to start, credit packs as you go, or a monthly plan.
 
-**Why it's different:** It scores the *hook specifically* (not generic "video SEO"), works on both
-raw ideas and real uploaded video (auto-transcribed), and gives blunt, actionable feedback — not vague tips.
+**Why it's different:** It doesn't just score the hook — it tells you *what tags to use* and
+*when to post* for your platform and audience, works on both raw ideas and real uploaded video
+(auto-transcribed), and gives blunt, actionable feedback — not vague tips.
 
 ### Name & tagline
-- **Name:** VidAnalyzer (keep — clear and descriptive).
-- **Primary tagline:** *Know if your video will pop — before you post it.*
-- **Alternates:** "Score your hook before you hit record." · "Stop posting videos that flop." ·
-  "Your first 5 seconds, graded by AI."
+- **Name:** ViralYzer.
+- **Primary tagline:** *Make every video hit — before you post it.*
+- **Alternates:** "Score it, tag it, time it — then post." · "Your hook, hashtags & timing, graded by AI." ·
+  "Stop posting videos that flop."
 
 ### Brand voice
 Direct, creator-native, a little blunt. Short sentences. No corporate fluff. Talk about *views,
-hooks, retention, the algorithm* — the words creators actually use. Confident, never hypey.
+hooks, retention, hashtags, the algorithm* — the words creators actually use. Confident, never hypey.
 
 ---
 
 ## 2. Product Hunt launch kit
 
-**Name:** VidAnalyzer
-**Tagline (60 char max):** AI that scores your video's hook before you post it
+**Name:** ViralYzer
+**Tagline (60 char max):** Score your video + get the best hashtags & post time
 **Topics:** Artificial Intelligence, Video, Marketing, Creator Tools
 
 **First comment (maker):**
-> Hey PH 👋 I built VidAnalyzer because I kept spending whole afternoons editing videos that
-> flopped — and the problem was almost always the first 5 seconds.
+> Hey PH 👋 I built ViralYzer because I kept spending whole afternoons on videos that flopped —
+> usually a weak first 5 seconds, the wrong hashtags, or posting at a dead hour.
 >
-> You paste your title + hook (or upload the actual clip — it transcribes it for you) and get three
-> scores in seconds: **Hook strength, Retention, and Viral potential**, plus blunt feedback on
-> exactly what to fix.
+> You paste your title + hook (or upload the actual clip — it transcribes it for you) and get a
+> full report in seconds: **Hook, Retention & Viral scores**, blunt feedback on what to fix, the
+> **best hashtags** for your video, and the **best times to post** for your audience.
 >
-> It's free to try (3 credits, or bring your own OpenAI key for unlimited). Top up a credit pack
-> anytime, or go $9/mo unlimited.
+> It's free to try (10 credits, or bring your own OpenAI key for unlimited). Then credit packs as
+> you go, or a monthly plan from €14.
 >
 > Would love your honest feedback — especially: what would make this a daily tool for you?
 
-**Gallery shots to include:** hero (headline + score preview), a real result with feedback,
-the video-upload flow, the pricing table.
+**Gallery shots to include:** hero (headline + report preview with hashtags + time), a real result
+with feedback, the video-upload flow, the pricing tiers.
 
 ---
 
 ## 3. X / Twitter launch thread
 
-1/ I analyzed why my videos flopped and it was almost always the same thing: a weak hook.
-So I built an AI that scores your hook *before* you post. 🧵
+1/ My videos didn't flop because of editing. They flopped on the hook, the hashtags, and the
+time I posted. So I built an AI that fixes all three *before* you post. 🧵
 
-2/ Paste your title + first 30–60s of script. In seconds you get 3 scores (0–100):
-• Hook strength
-• Retention
-• Viral potential
-+ exactly what to change.
+2/ Paste your title + first 30–60s of script. In seconds you get a full report:
+• Hook / Retention / Viral scores (0–100)
+• Exactly what to change
+• The best hashtags to use
+• The best time to post
 
-3/ Don't want to write it out? Upload the clip. It transcribes the audio and scores the hook you
-actually said. No more guessing whether the open lands.
+3/ Don't want to write it out? Upload the clip. It transcribes the audio and analyzes the hook you
+actually said — same full report.
 
 4/ Pricing is creator-friendly:
-• Free: 3 analyses (or bring your own OpenAI key, unlimited)
-• Top up credit packs as you go
-• $9/mo unlimited + saved history
+• Free: 10 credits (or bring your own OpenAI key, unlimited)
+• Credit packs as you go (from €9)
+• Monthly plans from €14 → 150 credits/mo
 
 5/ It's live now. Score your next video before you waste an edit on it 👇
 [link]
 
 **Single-tweet version:**
-> Stop posting videos that flop. VidAnalyzer scores your hook, retention & viral potential with AI —
-> and tells you what to fix — in seconds. Free to try 👉 [link]
+> Stop posting videos that flop. ViralYzer scores your hook, retention & viral potential, then
+> gives you the best hashtags + the best time to post — in seconds. Free to try 👉 [link]
 
 ---
 
@@ -89,10 +92,11 @@ actually said. No more guessing whether the open lands.
 Subs: r/NewTubers, r/youtubers, r/SmallYTChannel, r/TikTokGrowth, r/contentcreation, r/SideProject, r/Entrepreneur.
 
 **Post (r/SideProject / r/Entrepreneur):**
-> **I built an AI that scores your video's hook before you post it**
-> Spent too long making videos that died in the first 5 seconds, so I built a tool that grades the
-> hook (and retention + viral potential) and tells you what to fix. Works on a pasted idea or an
-> uploaded clip (auto-transcribed). Free to try — would genuinely love feedback on the scoring. [link]
+> **I built an AI that grades your video AND tells you the best hashtags + time to post**
+> Spent too long making videos that died in the first 5 seconds, so I built a tool that scores the
+> hook (plus retention + viral potential), tells you what to fix, suggests the best hashtags, and
+> the best time to post for your audience. Works on a pasted idea or an uploaded clip
+> (auto-transcribed). Free to try — would genuinely love feedback on the scoring. [link]
 
 **Rule of thumb:** read each sub's self-promo rules, comment helpfully for a week first, and frame
 posts as "built this, want feedback," never "buy this."
@@ -102,16 +106,17 @@ posts as "built this, want feedback," never "buy this."
 ## 5. Launch email
 
 **Subject:** Know if your video will flop — before you post it
-**Preview:** Score your hook in seconds with AI.
+**Preview:** Scores, hashtags, and the best time to post — in seconds.
 
 > Hey {first_name},
 >
-> Quick one. I just launched **VidAnalyzer** — it scores your video's hook, retention, and viral
-> potential with AI, and tells you exactly what to fix. Before you film.
+> Quick one. I just launched **ViralYzer** — it scores your video's hook, retention, and viral
+> potential with AI, tells you exactly what to fix, and hands you the best hashtags and the best
+> time to post. Before you publish.
 >
-> Paste an idea or upload a clip, get scores in seconds.
+> Paste an idea or upload a clip, get the full report in seconds.
 >
-> It's free to try (3 analyses): {link}
+> It's free to try (10 credits): {link}
 >
 > If you make videos, I'd love your take.
 > — {your name}
@@ -125,14 +130,15 @@ posts as "built this, want feedback," never "buy this."
 - [ ] 3–5 value-first Reddit posts across creator subs over 2 weeks.
 - [ ] Submit to free directories: there's a `directory-submissions` skill in `.agents/skills/`
       — hit indie/AI/creator-tool directories (e.g. AI tool listings, SaaS directories).
-- [ ] Make 3 short demo clips (score a famous video's hook) → post as Shorts/TikToks. Meta = marketing.
-- [ ] DM 20 small creators offering a free analysis of their next video.
-- [ ] Add a "Powered by VidAnalyzer" share card on results to drive loops.
+- [ ] Make 3 short demo clips (score a famous video + show its hashtags/post time) → post as Shorts/TikToks. Meta = marketing.
+- [ ] DM 20 small creators offering a free report on their next video.
+- [ ] Add a "Powered by ViralYzer" share card on results to drive loops.
 
 ### Conversion levers already built in
-- A free tier removes signup friction; pay-per-use removes commitment friction.
-- The landing leads with the outcome ("before you post it") and shows a score preview immediately.
-- Three pricing tiers anchor the $9 Pro as the obvious value pick.
+- A free tier (10 credits) removes signup friction; BYOK removes commitment friction.
+- The landing leads with the outcome ("make every video hit") and shows a full report preview
+  (scores + hashtags + best time) immediately.
+- Four tiers with a falling per-credit price anchor **Pro (€29)** as the obvious value pick.
 
 > The bundled marketing prompt-library lives in `.agents/skills/` (copywriting, cro, ai-seo,
 > ad-creative, cold-email, aso, etc.) — use them to expand any asset above.

@@ -1,4 +1,5 @@
 """Video analysis: upload → ffmpeg → Whisper → score, run as a background job."""
+import json
 import os
 import uuid
 from datetime import datetime
@@ -42,6 +43,8 @@ class JobStatusResponse(BaseModel):
     retention_score: Optional[int] = None
     viral_score: Optional[int] = None
     feedback: Optional[str] = None
+    hashtags: dict = {}
+    best_times: dict = {}
     created_at: datetime
 
 
@@ -50,7 +53,10 @@ def _apply_consumption_bg(session: Session, method: str, user_id: Optional[int],
     if method == "credit" and user_id is not None:
         user = session.get(User, user_id)
         if user:
-            user.credits = max(0, user.credits - cost)
+            # Spend the monthly subscription allowance first, then pack credits.
+            from_sub = min(user.subscription_credits, cost)
+            user.subscription_credits -= from_sub
+            user.credits = max(0, user.credits - (cost - from_sub))
             session.add(user)
             session.commit()
     elif method == "pay-token" and session_id:
@@ -59,7 +65,8 @@ def _apply_consumption_bg(session: Session, method: str, user_id: Optional[int],
 
 
 def _process_video(job_id: int, file_path: str, title: str, byok_key: Optional[str],
-                   method: str, user_id: Optional[int], session_id: Optional[str], cost: int):
+                   method: str, user_id: Optional[int], session_id: Optional[str], cost: int,
+                   platform: str = "", audience: str = ""):
     """Runs in the background. Owns its own DB session."""
     with Session(engine) as session:
         job = session.get(VideoJob, job_id)
@@ -76,12 +83,17 @@ def _process_video(job_id: int, file_path: str, title: str, byok_key: Optional[s
             session.add(job)
             session.commit()
 
-            result = score_content(title, transcript, byok_key=byok_key)
+            result = score_content(
+                title, transcript, platform=platform, audience=audience, byok_key=byok_key,
+            )
 
             analysis = Analysis(
                 user_id=user_id, kind="video", title=title, input_text=transcript,
+                platform=platform or "",
                 hook_score=result.hook_score, retention_score=result.retention_score,
                 viral_score=result.viral_score, feedback=result.feedback,
+                hashtags=json.dumps(result.hashtags or {}),
+                best_times=json.dumps(result.best_times or {}),
             )
             session.add(analysis)
             session.commit()
@@ -116,6 +128,8 @@ async def analyze_video(
     background: BackgroundTasks,
     title: str = Form(...),
     file: UploadFile = File(...),
+    platform: Optional[str] = Form(None),
+    audience: Optional[str] = Form(None),
     user_api_key: Optional[str] = Form(None),
     pay_token: Optional[str] = Form(None),
     user: Optional[User] = Depends(get_optional_user),
@@ -190,6 +204,7 @@ async def analyze_video(
     background.add_task(
         _process_video, job.id, file_path, title, grant.byok_key,
         grant.method, user.id if user else None, grant.session_id, grant.credits_cost,
+        platform or "", audience or "",
     )
     return JobResponse(job_id=job.token, status=job.status)
 
@@ -220,4 +235,16 @@ def job_status(
             resp.retention_score = analysis.retention_score
             resp.viral_score = analysis.viral_score
             resp.feedback = analysis.feedback
+            resp.hashtags = _loads(analysis.hashtags)
+            resp.best_times = _loads(analysis.best_times)
     return resp
+
+
+def _loads(raw: str) -> dict:
+    if not raw:
+        return {}
+    try:
+        v = json.loads(raw)
+        return v if isinstance(v, dict) else {}
+    except (json.JSONDecodeError, TypeError):
+        return {}

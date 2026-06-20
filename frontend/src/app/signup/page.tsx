@@ -39,12 +39,12 @@ export default function SignupPage() {
           <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center shadow-md">
             <Play className="w-5 h-5 text-white fill-white ml-0.5" />
           </div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">VidAnalyzer</h1>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">ViralYzer</h1>
         </div>
 
         <h2 className="text-2xl font-extrabold text-slate-900 mb-1">Create your account</h2>
         <p className="text-slate-500 mb-6 font-medium flex items-center gap-1.5">
-          <Sparkles className="w-4 h-4 text-pink-500" /> Get 3 free analyses to start.
+          <Sparkles className="w-4 h-4 text-pink-500" /> Get 10 free credits to start.
         </p>
 
         {error && (

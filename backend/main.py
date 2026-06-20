@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from config import settings
 from db import create_db_and_tables
 from llm import server_llm_configured
+from plans import PACKS, PLANS
 from routers.auth_router import router as auth_router
 from routers.analyze_router import router as analyze_router
 from routers.billing_router import router as billing_router
@@ -46,7 +47,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="SaaS Video Analyzer API", lifespan=lifespan)
+app = FastAPI(title="ViralYzer API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -64,7 +65,26 @@ app.include_router(video_router)
 
 @app.get("/")
 def read_root():
-    return {"message": "SaaS Video Analyzer API is running"}
+    return {"message": "ViralYzer API is running"}
+
+
+class PlanOut(BaseModel):
+    key: str
+    name: str
+    price_eur: int
+    monthly_credits: int
+    priority: bool
+    team: bool
+    tagline: str
+    available: bool  # a Lemon Squeezy variant is configured for this plan
+
+
+class PackOut(BaseModel):
+    key: str
+    name: str
+    price_eur: int
+    credits: int
+    available: bool
 
 
 class ConfigResponse(BaseModel):
@@ -77,20 +97,31 @@ class ConfigResponse(BaseModel):
     server_llm_ready: bool         # server can analyze without a caller key
     ai_provider: str               # "local" | "openai" | "custom"
     pay_per_use_cents: int
-    credit_pack_size: int
     free_credits_on_signup: int
     idea_credit_cost: int
     video_credit_cost: int
+    plans: list[PlanOut]
+    packs: list[PackOut]
 
 
 @app.get("/api/config", response_model=ConfigResponse)
 def get_config():
-    """Public capability flags so the frontend can adapt (which billing buttons
-    to show, which AI provider, credit costs, etc.)."""
+    """Public capability flags + the pricing catalog so the frontend can render
+    plans/packs, the right billing buttons, AI provider, and credit costs."""
     if settings.llm_base_url:
         ai_provider = "local" if "11434" in settings.llm_base_url else "custom"
     else:
         ai_provider = "openai"
+
+    plan_variants = settings.plan_variant_map
+    pack_variants = settings.pack_variant_map
+    plans = [
+        PlanOut(key=k, available=k in plan_variants, **p) for k, p in PLANS.items()
+    ]
+    packs = [
+        PackOut(key=k, available=k in pack_variants, **p) for k, p in PACKS.items()
+    ]
+
     return ConfigResponse(
         payment_provider=settings.payment_provider,
         billing_enabled=settings.billing_enabled,
@@ -101,8 +132,9 @@ def get_config():
         server_llm_ready=server_llm_configured(),
         ai_provider=ai_provider,
         pay_per_use_cents=settings.pay_per_use_amount_cents,
-        credit_pack_size=settings.credit_pack_size,
         free_credits_on_signup=settings.free_credits_on_signup,
         idea_credit_cost=settings.idea_credit_cost,
         video_credit_cost=settings.video_credit_cost,
+        plans=plans,
+        packs=packs,
     )

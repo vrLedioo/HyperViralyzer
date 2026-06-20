@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   Play, Sparkles, History, BrainCircuit, CheckCircle2, TrendingUp, Target, Zap,
   Clock, AlertCircle, Key, CreditCard, ChevronRight, LogOut, User as UserIcon,
-  Lightbulb, Video, UploadCloud, FileText, Crown,
+  Lightbulb, Video, UploadCloud, FileText, Crown, Hash, Copy, Check,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { api, API_URL, getToken } from '@/lib/api';
@@ -28,13 +28,27 @@ const EXAMPLES = [
   },
 ];
 
+const PLATFORMS = [
+  { value: '', label: 'Auto-detect platform' },
+  { value: 'TikTok', label: 'TikTok' },
+  { value: 'Instagram Reels', label: 'Instagram Reels' },
+  { value: 'YouTube Shorts', label: 'YouTube Shorts' },
+  { value: 'YouTube (long-form)', label: 'YouTube (long-form)' },
+];
+
 const PAY_TOKEN_KEY = 'va_pay_token';
+
+interface Hashtags { primary: string[]; niche: string[]; broad: string[] }
+interface TimeSlot { day: string; time: string; why: string }
+interface BestTimes { timezone_note?: string; summary?: string; slots?: TimeSlot[] }
 
 interface AnalysisResult {
   hook_score: number;
   retention_score: number;
   viral_score: number;
   feedback: string;
+  hashtags?: Hashtags;
+  best_times?: BestTimes;
   transcript?: string | null;
   pay_token_consumed?: boolean;
 }
@@ -43,13 +57,19 @@ interface HistoryItem {
   id: number;
   kind: string;
   title: string;
+  platform?: string | null;
   transcript?: string | null;
   hook_score: number;
   retention_score: number;
   viral_score: number;
   feedback: string;
+  hashtags?: Hashtags;
+  best_times?: BestTimes;
   created_at: string;
 }
+
+interface PlanOut { key: string; name: string; price_eur: number; monthly_credits: number; priority: boolean; team: boolean; tagline: string; available: boolean }
+interface PackOut { key: string; name: string; price_eur: number; credits: number; available: boolean }
 
 interface AppConfig {
   payment_provider: string;
@@ -61,10 +81,11 @@ interface AppConfig {
   server_llm_ready: boolean;
   ai_provider: string;
   pay_per_use_cents: number;
-  credit_pack_size: number;
   free_credits_on_signup: number;
   idea_credit_cost: number;
   video_credit_cost: number;
+  plans: PlanOut[];
+  packs: PackOut[];
 }
 
 type Mode = 'idea' | 'video';
@@ -75,12 +96,21 @@ function scoreLabel(viral: number): { label: string; color: string } {
   return { label: '⚠️ Average', color: 'text-amber-700 bg-amber-100/80 border-amber-200' };
 }
 
+function hasHashtags(h?: Hashtags): boolean {
+  return !!h && ((h.primary?.length || 0) + (h.niche?.length || 0) + (h.broad?.length || 0) > 0);
+}
+function hasTimes(t?: BestTimes): boolean {
+  return !!t && ((t.slots?.length || 0) > 0 || !!t.summary);
+}
+
 export default function Home() {
   const { user, logout, refresh } = useAuth();
 
   const [mode, setMode] = useState<Mode>('idea');
   const [title, setTitle] = useState('');
   const [script, setScript] = useState('');
+  const [platform, setPlatform] = useState('');
+  const [audience, setAudience] = useState('');
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [userApiKey, setUserApiKey] = useState('');
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
@@ -128,7 +158,7 @@ export default function Home() {
     return () => { cancelled = true; };
   }, []);
 
-  // Handle Stripe redirects (pay-per-use + subscription).
+  // Handle payment redirects (pay-per-use + subscription + credit packs).
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const cleanUrl = () => window.history.replaceState({}, '', window.location.pathname);
@@ -153,15 +183,15 @@ export default function Home() {
       setNotice('Payment cancelled.');
     } else if (params.get('subscribed') === 'success') {
       cleanUrl();
-      setNotice('Subscription active — enjoy unlimited analyses! ✨');
+      setNotice('Subscription active — your monthly credits are loaded! ✨');
       refresh();
+      setTimeout(() => refresh(), 4000);
     } else if (params.get('subscribed') === 'cancelled') {
       cleanUrl();
       setNotice('Subscription checkout cancelled.');
     } else if (params.get('credits') === 'success') {
       cleanUrl();
       setNotice('Payment received — your credits will appear in a moment. ✨');
-      // Webhook may lag a second or two; refresh now and shortly after.
       refresh();
       setTimeout(() => refresh(), 4000);
     }
@@ -170,9 +200,6 @@ export default function Home() {
   const consumePayTokenIfAny = () => localStorage.getItem(PAY_TOKEN_KEY) || undefined;
 
   const afterSuccess = async (payTokenConsumed: boolean) => {
-    // Only drop the pay token if the server actually spent it — otherwise a
-    // higher-priority path (credits/subscription/BYOK) was used and the paid
-    // token must be preserved for a later analysis.
     if (payTokenConsumed) localStorage.removeItem(PAY_TOKEN_KEY);
     await Promise.all([refresh(), loadHistory()]);
   };
@@ -187,6 +214,8 @@ export default function Home() {
         method: 'POST',
         body: JSON.stringify({
           title, script,
+          platform: platform || undefined,
+          audience: audience || undefined,
           user_api_key: userApiKey || undefined,
           pay_token: consumePayTokenIfAny(),
         }),
@@ -212,6 +241,8 @@ export default function Home() {
       const form = new FormData();
       form.append('title', title);
       form.append('file', videoFile);
+      if (platform) form.append('platform', platform);
+      if (audience) form.append('audience', audience);
       if (userApiKey) form.append('user_api_key', userApiKey);
       const payTok = consumePayTokenIfAny();
       if (payTok) form.append('pay_token', payTok);
@@ -234,13 +265,14 @@ export default function Home() {
           try {
             const job = await api<any>(`/api/jobs/${job_id}`);
             if (job.status === 'transcribing') setStatusLabel('Transcribing audio…');
-            else if (job.status === 'scoring') setStatusLabel('Scoring with AI…');
+            else if (job.status === 'scoring') setStatusLabel('Building your report…');
             else if (job.status === 'done') {
               clearInterval(pollRef.current!);
               payConsumed = !!job.pay_token_consumed;
               setResult({
                 hook_score: job.hook_score, retention_score: job.retention_score,
-                viral_score: job.viral_score, feedback: job.feedback, transcript: job.transcript,
+                viral_score: job.viral_score, feedback: job.feedback,
+                hashtags: job.hashtags, best_times: job.best_times, transcript: job.transcript,
               });
               resolve();
             } else if (job.status === 'error') {
@@ -271,20 +303,24 @@ export default function Home() {
     }
   };
 
-  const handleBuyCredits = async () => {
+  const handleBuyCredits = async (pack: string) => {
     if (!user) { window.location.href = '/signup'; return; }
     try {
-      const data = await api<{ url: string }>('/api/checkout/credits', { method: 'POST' });
+      const data = await api<{ url: string }>('/api/checkout/credits', {
+        method: 'POST', body: JSON.stringify({ pack }),
+      });
       if (data.url) window.location.href = data.url;
     } catch (err: any) {
       setError(err.message || 'Could not start checkout.');
     }
   };
 
-  const handleSubscribe = async () => {
+  const handleSubscribe = async (plan: string) => {
     if (!user) { window.location.href = '/signup'; return; }
     try {
-      const data = await api<{ url: string }>('/api/checkout/subscription', { method: 'POST' });
+      const data = await api<{ url: string }>('/api/checkout/subscription', {
+        method: 'POST', body: JSON.stringify({ plan }),
+      });
       if (data.url) window.location.href = data.url;
     } catch (err: any) {
       setError(err.message || 'Could not start subscription.');
@@ -292,8 +328,26 @@ export default function Home() {
   };
 
   const loadExample = (index: number) => { setTitle(EXAMPLES[index].title); setScript(EXAMPLES[index].script); };
+  const restoreFromHistory = (item: HistoryItem) => {
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+    setIsLoading(false); setStatusLabel(''); setError('');
+    setResult({
+      hook_score: item.hook_score, retention_score: item.retention_score,
+      viral_score: item.viral_score, feedback: item.feedback,
+      hashtags: item.hashtags, best_times: item.best_times,
+      transcript: item.transcript ?? undefined,
+    });
+  };
 
   const canSubmit = mode === 'idea' ? !!(title.trim() && script.trim()) : !!(title.trim() && videoFile);
+  const cost = mode === 'idea' ? config?.idea_credit_cost : config?.video_credit_cost;
+  const availablePlans = (config?.plans || []).filter((p) => p.available);
+  const availablePacks = (config?.packs || []).filter((p) => p.available);
+  const planName = (() => {
+    if (!user || user.plan === 'free') return null;
+    const p = config?.plans.find((x) => x.key === user.plan);
+    return p?.name || user.plan.charAt(0).toUpperCase() + user.plan.slice(1);
+  })();
 
   return (
     <div className="flex h-screen w-full relative z-10 p-4 md:p-6 lg:p-8 gap-6 text-slate-900">
@@ -304,7 +358,7 @@ export default function Home() {
             <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center shadow-md">
               <Play className="w-5 h-5 text-white fill-white ml-0.5" />
             </div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight group-hover:text-pink-600 transition-colors">VidAnalyzer</h1>
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight group-hover:text-pink-600 transition-colors">ViralYzer</h1>
           </Link>
         </div>
 
@@ -341,18 +395,7 @@ export default function Home() {
                 const { label, color } = scoreLabel(item.viral_score);
                 return (
                   <div key={item.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-white/50 cursor-pointer transition-colors border border-transparent hover:border-black/5"
-                    onClick={() => {
-                      // Stop any in-flight analysis so it can't overwrite the restored view.
-                      if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
-                      setIsLoading(false);
-                      setStatusLabel('');
-                      setError('');
-                      setResult({
-                        hook_score: item.hook_score, retention_score: item.retention_score,
-                        viral_score: item.viral_score, feedback: item.feedback,
-                        transcript: item.transcript ?? undefined,
-                      });
-                    }}>
+                    onClick={() => restoreFromHistory(item)}>
                     <div className="min-w-0 mr-3">
                       <p className="text-sm font-semibold text-slate-700 truncate">{item.title}</p>
                       <p className="text-[10px] text-slate-400 font-bold uppercase">{item.kind}</p>
@@ -375,7 +418,7 @@ export default function Home() {
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-bold text-slate-800 truncate">{user.email}</p>
                 <p className="text-xs font-semibold text-slate-500">
-                  {user.subscription_status === 'active' ? '✨ Pro — unlimited' : `${user.credits} credit${user.credits === 1 ? '' : 's'}`}
+                  {planName ? `✨ ${planName} · ` : ''}{user.total_credits} credit{user.total_credits === 1 ? '' : 's'}
                 </p>
               </div>
               <button onClick={logout} title="Log out" className="text-slate-400 hover:text-pink-600 transition-colors cursor-pointer">
@@ -414,17 +457,26 @@ export default function Home() {
               <CreditCard className="w-4 h-4" /> Pay per use (${(config.pay_per_use_cents / 100).toFixed(2)})
             </button>
           )}
-          {/* Credit pack top-up (Lemon Squeezy) */}
-          {config?.credits_purchase_enabled && (
-            <button onClick={handleBuyCredits} className="flex items-center gap-2 w-full p-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg transition-colors text-sm font-semibold justify-center cursor-pointer">
-              <CreditCard className="w-4 h-4" /> Buy {config.credit_pack_size} credits
+
+          {/* Subscription plans (Lemon Squeezy) */}
+          {config?.subscription_enabled && availablePlans.map((p) => (
+            <button key={p.key} onClick={() => handleSubscribe(p.key)}
+              className={`flex items-center justify-between gap-2 w-full p-2 rounded-lg transition-all text-sm font-semibold cursor-pointer ${user?.plan === p.key ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-default' : 'bg-gradient-to-r from-pink-500 to-orange-500 hover:opacity-95 text-white'}`}
+              disabled={user?.plan === p.key}>
+              <span className="flex items-center gap-2"><Crown className="w-4 h-4" /> {p.name}</span>
+              <span>{user?.plan === p.key ? 'Current' : `€${p.price_eur}/mo`}</span>
             </button>
-          )}
-          {config?.subscription_enabled && user?.subscription_status !== 'active' && (
-            <button onClick={handleSubscribe} className="flex items-center gap-2 w-full p-2 bg-gradient-to-r from-pink-500 to-orange-500 hover:opacity-95 text-white rounded-lg transition-all text-sm font-semibold justify-center cursor-pointer">
-              <Crown className="w-4 h-4" /> Go Pro (unlimited)
+          ))}
+
+          {/* Credit packs (Lemon Squeezy) */}
+          {config?.credits_purchase_enabled && availablePacks.map((p) => (
+            <button key={p.key} onClick={() => handleBuyCredits(p.key)}
+              className="flex items-center justify-between gap-2 w-full p-2 bg-white border border-slate-200 hover:border-pink-300 text-slate-800 rounded-lg transition-colors text-sm font-semibold cursor-pointer">
+              <span className="flex items-center gap-2"><CreditCard className="w-4 h-4" /> {p.credits} credits</span>
+              <span>€{p.price_eur}</span>
             </button>
-          )}
+          ))}
+
           {!config?.billing_enabled && (
             <p className="text-xs text-slate-400 font-medium leading-relaxed">
               {config?.ai_provider === 'local' ? 'Running on a free local AI model. ' : ''}
@@ -443,8 +495,8 @@ export default function Home() {
             </h2>
             <p className="text-slate-600 mt-1 text-lg font-medium">
               {mode === 'idea'
-                ? 'Get AI-powered feedback on your hook and pacing.'
-                : 'Upload a clip — we transcribe it and score the real hook.'}
+                ? 'Scores, hashtags & best time to post — from your title and hook.'
+                : 'Upload a clip — we transcribe it and build your full report.'}
             </p>
           </div>
         </header>
@@ -456,6 +508,25 @@ export default function Home() {
               {notice && (
                 <div className="mb-4 bg-emerald-50 border-l-4 border-emerald-500 p-3 rounded-lg text-emerald-800 text-sm font-medium">{notice}</div>
               )}
+
+              {/* Targeting (shared by both modes) */}
+              <div className="mb-5 grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="platform" className="block text-sm font-bold text-slate-800 mb-2">Platform</label>
+                  <select id="platform" value={platform} onChange={(e) => setPlatform(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-50/50 border-2 border-slate-200 focus:border-pink-500 focus:bg-white text-slate-900 font-semibold transition-all outline-none cursor-pointer">
+                    {PLATFORMS.map((p) => <option key={p.label} value={p.value}>{p.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="audience" className="block text-sm font-bold text-slate-800 mb-2">
+                    Target audience <span className="font-normal text-slate-400">(optional)</span>
+                  </label>
+                  <input id="audience" type="text" value={audience} onChange={(e) => setAudience(e.target.value)}
+                    placeholder="e.g. Gen Z gamers, US"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50/50 border-2 border-slate-200 focus:border-pink-500 focus:bg-white text-slate-900 placeholder-slate-400 font-semibold transition-all outline-none" />
+                </div>
+              </div>
 
               {mode === 'idea' ? (
                 <>
@@ -499,9 +570,9 @@ export default function Home() {
                     </div>
 
                     <SubmitButton isLoading={isLoading} disabled={!canSubmit} label="Analyze Idea" statusLabel={statusLabel} />
-                    {user && user.subscription_status !== 'active' && !userApiKey && config && (
+                    {user && !userApiKey && cost != null && (
                       <p className="text-center text-xs text-slate-400 font-medium mt-2">
-                        Uses {config.idea_credit_cost} credit{config.idea_credit_cost === 1 ? '' : 's'} · you have {user.credits}
+                        Uses {cost} credit{cost === 1 ? '' : 's'} · you have {user.total_credits}
                       </p>
                     )}
                   </form>
@@ -533,9 +604,9 @@ export default function Home() {
                   </label>
 
                   <SubmitButton isLoading={isLoading} disabled={!canSubmit} label="Analyze Video" statusLabel={statusLabel} />
-                  {user && user.subscription_status !== 'active' && !userApiKey && config && (
+                  {user && !userApiKey && cost != null && (
                     <p className="text-center text-xs text-slate-400 font-medium mt-2">
-                      Uses {config.video_credit_cost} credits · you have {user.credits}
+                      Uses {cost} credits · you have {user.total_credits}
                     </p>
                   )}
                 </form>
@@ -554,7 +625,7 @@ export default function Home() {
 
             <div className="flex-1 bg-slate-50/80 rounded-[24px] p-6 md:p-8 flex flex-col relative overflow-y-auto custom-scrollbar border border-black/[0.06] shadow-inner">
               <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200/60">
-                <h3 className="text-2xl font-extrabold tracking-tight text-slate-900">Analysis Results</h3>
+                <h3 className="text-2xl font-extrabold tracking-tight text-slate-900">Your Report</h3>
                 {result ? (
                   <div className="flex items-center gap-1.5 px-3 py-1 bg-pink-100 rounded-lg text-pink-700 text-xs font-bold uppercase tracking-wider shadow-sm border border-pink-200"><Sparkles className="w-3 h-3" /> AI Generated</div>
                 ) : (
@@ -593,11 +664,14 @@ export default function Home() {
                   <div className="flex-1 flex flex-col items-center justify-center text-center py-8">
                     <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-3"><Sparkles className="w-6 h-6 text-slate-300" /></div>
                     <p className="text-slate-400 font-medium max-w-[250px]">
-                      {mode === 'idea' ? 'Paste your script and click analyze to reveal your potential.' : 'Upload a video and click analyze to transcribe and score it.'}
+                      {mode === 'idea' ? 'Paste your script and click analyze to get scores, hashtags & timing.' : 'Upload a video and click analyze to transcribe and build your report.'}
                     </p>
                   </div>
                 )}
               </div>
+
+              {result && hasHashtags(result.hashtags) && <HashtagsCard hashtags={result.hashtags!} />}
+              {result && hasTimes(result.best_times) && <BestTimesCard times={result.best_times!} />}
 
               {result?.transcript && (
                 <div className="mt-4 bg-white border-2 border-slate-100 p-6 rounded-2xl">
@@ -655,6 +729,66 @@ function ScoreCard({ label, value, color, Icon, delay = '' }: { label: string; v
       <div className="mt-3 w-full bg-slate-200/70 rounded-full h-1.5 overflow-hidden">
         <div className={`h-1.5 rounded-full transition-all duration-1000 ${delay} ease-out ${has ? bar : 'bg-transparent'}`} style={{ width: `${has ? value : 0}%` }}></div>
       </div>
+    </div>
+  );
+}
+
+function TagGroup({ title, tags }: { title: string; tags: string[] }) {
+  if (!tags || tags.length === 0) return null;
+  return (
+    <div className="mb-3 last:mb-0">
+      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">{title}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {tags.map((t) => (
+          <span key={t} className="text-xs font-bold text-pink-700 bg-pink-100/80 border border-pink-200 px-2 py-0.5 rounded-md">{t}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function HashtagsCard({ hashtags }: { hashtags: Hashtags }) {
+  const [copied, setCopied] = useState(false);
+  const all = [...(hashtags.primary || []), ...(hashtags.niche || []), ...(hashtags.broad || [])];
+  const copyAll = async () => {
+    try {
+      await navigator.clipboard.writeText(all.join(' '));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch { /* clipboard unavailable */ }
+  };
+  return (
+    <div className="mt-4 bg-white border-2 border-slate-100 p-6 rounded-2xl">
+      <div className="flex items-center justify-between mb-4">
+        <h4 className="text-lg font-bold flex items-center gap-2 text-slate-900"><Hash className="w-5 h-5 text-pink-500" /> Best Hashtags</h4>
+        <button onClick={copyAll} className="flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer">
+          {copied ? <><Check className="w-3.5 h-3.5 text-emerald-500" /> Copied</> : <><Copy className="w-3.5 h-3.5" /> Copy all</>}
+        </button>
+      </div>
+      <TagGroup title="Primary" tags={hashtags.primary} />
+      <TagGroup title="Niche" tags={hashtags.niche} />
+      <TagGroup title="Broad reach" tags={hashtags.broad} />
+    </div>
+  );
+}
+
+function BestTimesCard({ times }: { times: BestTimes }) {
+  return (
+    <div className="mt-4 bg-white border-2 border-slate-100 p-6 rounded-2xl">
+      <h4 className="text-lg font-bold mb-2 flex items-center gap-2 text-slate-900"><Clock className="w-5 h-5 text-pink-500" /> Best Time to Post</h4>
+      {times.summary && <p className="text-slate-600 font-medium text-sm leading-relaxed mb-4">{times.summary}</p>}
+      <div className="space-y-2">
+        {(times.slots || []).map((s, i) => (
+          <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
+            <div className="shrink-0 w-7 h-7 rounded-full bg-gradient-to-br from-pink-500 to-orange-500 text-white text-xs font-black flex items-center justify-center">{i + 1}</div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-slate-800">{[s.day, s.time].filter(Boolean).join(' · ')}</p>
+              {s.why && <p className="text-xs text-slate-500 font-medium leading-relaxed mt-0.5">{s.why}</p>}
+            </div>
+          </div>
+        ))}
+      </div>
+      {times.timezone_note && <p className="text-xs text-slate-400 font-medium mt-3 italic">{times.timezone_note}</p>}
     </div>
   );
 }

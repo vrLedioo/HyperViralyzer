@@ -18,14 +18,23 @@ class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     email: str = Field(index=True, unique=True)
     hashed_password: str
-    # Credits from pay-per-use credit packs; consumed per analysis.
+    # Purchased credit-pack balance; never expires, consumed per analysis.
     credits: int = 0
+    # Monthly subscription allowance; refilled on each renewal (does NOT roll
+    # over), and spent BEFORE purchased `credits`.
+    subscription_credits: int = 0
     # "none" | "active" | "canceled"
     subscription_status: str = "none"
+    # Active plan key ("creator" | "pro" | "agency"), or "free".
+    plan: str = "free"
     stripe_customer_id: Optional[str] = Field(default=None, index=True)
     # Provider subscription id (Lemon Squeezy / Stripe) for cancel matching.
     subscription_id: Optional[str] = Field(default=None, index=True)
     created_at: datetime = Field(default_factory=_utcnow)
+
+    @property
+    def total_credits(self) -> int:
+        return self.subscription_credits + self.credits
 
 
 class Analysis(SQLModel, table=True):
@@ -36,10 +45,18 @@ class Analysis(SQLModel, table=True):
     title: str
     # The hook/script text (idea) or the transcript (video).
     input_text: str = ""
+    # Target platform for hashtag/timing tuning ("tiktok" | "youtube" | ...).
+    platform: str = ""
     hook_score: int = 0
     retention_score: int = 0
     viral_score: int = 0
     feedback: str = ""
+    # JSON-encoded optimization extras (see services/report.py for the shape):
+    #   hashtags  -> {"primary": [...], "niche": [...], "broad": [...]}
+    #   best_times-> {"timezone_note": str, "summary": str,
+    #                 "slots": [{"day","time","why"}]}
+    hashtags: str = ""
+    best_times: str = ""
     created_at: datetime = Field(default_factory=_utcnow)
 
 

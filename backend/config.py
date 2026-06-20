@@ -43,21 +43,18 @@ class Settings(BaseSettings):
     jwt_secret: str = "dev-secret-change-me"
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
-    free_credits_on_signup: int = 3
+    free_credits_on_signup: int = 10
 
-    # Credit cost per analysis type. Video costs more — it runs Whisper
-    # transcription on top of scoring (~100x the AI cost of a text idea).
+    # Credit cost per analysis type. A video report costs more — it runs Whisper
+    # transcription on top of the full report (scores + hashtags + best time).
     idea_credit_cost: int = 1
-    video_credit_cost: int = 3
+    video_credit_cost: int = 5
 
     # --- Payments ---
     # Active provider: "none" | "lemonsqueezy" | "stripe".
     # Stripe is unavailable in some countries (e.g. Kosovo); Lemon Squeezy is a
     # Merchant of Record that works there and handles tax/VAT + payouts.
     payment_provider: str = "none"
-
-    # Credits granted per credit-pack purchase (one-time top-up).
-    credit_pack_size: int = 30
 
     # --- Stripe (used when payment_provider == "stripe") ---
     stripe_secret_key: str | None = None
@@ -69,8 +66,41 @@ class Settings(BaseSettings):
     lemonsqueezy_api_key: str | None = None
     lemonsqueezy_store_id: str | None = None
     lemonsqueezy_webhook_secret: str | None = None
-    lemonsqueezy_subscription_variant_id: str | None = None  # Pro subscription variant
-    lemonsqueezy_credits_variant_id: str | None = None        # one-time credit-pack variant
+    # One Lemon Squeezy *variant id* per subscription plan (see plans.PLANS).
+    ls_variant_creator: str | None = None
+    ls_variant_pro: str | None = None
+    ls_variant_agency: str | None = None
+    # One variant id per one-time credit pack (see plans.PACKS).
+    ls_variant_pack_small: str | None = None
+    ls_variant_pack_large: str | None = None
+
+    # --- Plan / pack <-> Lemon Squeezy variant maps ---
+    @property
+    def plan_variant_map(self) -> dict[str, str]:
+        """plan_key -> variant_id, for plans whose variant is configured."""
+        raw = {
+            "creator": self.ls_variant_creator,
+            "pro": self.ls_variant_pro,
+            "agency": self.ls_variant_agency,
+        }
+        return {k: v for k, v in raw.items() if v}
+
+    @property
+    def pack_variant_map(self) -> dict[str, str]:
+        """pack_key -> variant_id, for packs whose variant is configured."""
+        raw = {
+            "small": self.ls_variant_pack_small,
+            "large": self.ls_variant_pack_large,
+        }
+        return {k: v for k, v in raw.items() if v}
+
+    @property
+    def variant_to_plan(self) -> dict[str, str]:
+        return {v: k for k, v in self.plan_variant_map.items()}
+
+    @property
+    def variant_to_pack(self) -> dict[str, str]:
+        return {v: k for k, v in self.pack_variant_map.items()}
 
     # --- URLs ---
     # Canonical frontend origin (used for Stripe success/cancel redirects).
@@ -97,14 +127,14 @@ class Settings(BaseSettings):
         if self.payment_provider == "stripe":
             return bool(self.stripe_secret_key and self.stripe_subscription_price_id)
         if self.payment_provider == "lemonsqueezy":
-            return bool(self.lemonsqueezy_api_key and self.lemonsqueezy_subscription_variant_id)
+            return bool(self.lemonsqueezy_api_key and self.plan_variant_map)
         return False
 
     @property
     def credits_purchase_enabled(self) -> bool:
         # Logged-in credit-pack top-up (Lemon Squeezy).
         if self.payment_provider == "lemonsqueezy":
-            return bool(self.lemonsqueezy_api_key and self.lemonsqueezy_credits_variant_id)
+            return bool(self.lemonsqueezy_api_key and self.pack_variant_map)
         return False
 
     @property

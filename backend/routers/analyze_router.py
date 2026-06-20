@@ -1,4 +1,5 @@
 """Analysis endpoints: idea scoring + history. (Video lives in video_router.)"""
+import json
 from datetime import datetime
 from typing import Optional
 
@@ -19,6 +20,8 @@ router = APIRouter(prefix="/api", tags=["analyze"])
 class AnalyzeRequest(BaseModel):
     title: str
     script: str
+    platform: Optional[str] = None      # target platform for hashtags/timing
+    audience: Optional[str] = None      # target audience (region / who)
     user_api_key: Optional[str] = None  # BYOK
     pay_token: Optional[str] = None     # single-use pay-per-use token
 
@@ -28,6 +31,8 @@ class AnalyzeResponse(BaseModel):
     retention_score: int
     viral_score: int
     feedback: str
+    hashtags: dict = {}
+    best_times: dict = {}
     pay_token_consumed: bool = False
 
 
@@ -35,12 +40,26 @@ class AnalysisOut(BaseModel):
     id: int
     kind: str
     title: str
+    platform: Optional[str] = None
     transcript: Optional[str] = None
     hook_score: int
     retention_score: int
     viral_score: int
     feedback: str
+    hashtags: dict = {}
+    best_times: dict = {}
     created_at: datetime
+
+
+def _loads(raw: str) -> dict:
+    """Decode a stored JSON blob; tolerate empty/legacy rows."""
+    if not raw:
+        return {}
+    try:
+        v = json.loads(raw)
+        return v if isinstance(v, dict) else {}
+    except (json.JSONDecodeError, TypeError):
+        return {}
 
 
 def save_analysis(
@@ -51,16 +70,20 @@ def save_analysis(
     title: str,
     input_text: str,
     result,
+    platform: str = "",
 ) -> Analysis:
     record = Analysis(
         user_id=user.id if user else None,
         kind=kind,
         title=title,
         input_text=input_text,
+        platform=platform or "",
         hook_score=result.hook_score,
         retention_score=result.retention_score,
         viral_score=result.viral_score,
         feedback=result.feedback,
+        hashtags=json.dumps(getattr(result, "hashtags", {}) or {}),
+        best_times=json.dumps(getattr(result, "best_times", {}) or {}),
     )
     session.add(record)
     session.commit()
@@ -86,7 +109,11 @@ def analyze_idea(
         raise HTTPException(status_code=e.status_code, detail=str(e))
 
     try:
-        result = score_content(request.title, request.script, byok_key=grant.byok_key)
+        result = score_content(
+            request.title, request.script,
+            platform=request.platform, audience=request.audience,
+            byok_key=grant.byok_key,
+        )
     except ScoringError as e:
         if grant.method == "byok":
             raise HTTPException(
@@ -99,7 +126,7 @@ def analyze_idea(
     apply_consumption(grant, session)
     save_analysis(
         session, user=user, kind="idea", title=request.title,
-        input_text=request.script, result=result,
+        input_text=request.script, result=result, platform=request.platform or "",
     )
 
     return AnalyzeResponse(
@@ -107,6 +134,8 @@ def analyze_idea(
         retention_score=result.retention_score,
         viral_score=result.viral_score,
         feedback=result.feedback,
+        hashtags=result.hashtags,
+        best_times=result.best_times,
         pay_token_consumed=(grant.method == "pay-token"),
     )
 
@@ -123,10 +152,12 @@ def history(
     ).all()
     return [
         AnalysisOut(
-            id=r.id, kind=r.kind, title=r.title,
+            id=r.id, kind=r.kind, title=r.title, platform=r.platform or None,
             transcript=r.input_text if r.kind == "video" else None,
             hook_score=r.hook_score, retention_score=r.retention_score,
-            viral_score=r.viral_score, feedback=r.feedback, created_at=r.created_at,
+            viral_score=r.viral_score, feedback=r.feedback,
+            hashtags=_loads(r.hashtags), best_times=_loads(r.best_times),
+            created_at=r.created_at,
         )
         for r in rows
     ]

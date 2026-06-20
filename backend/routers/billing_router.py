@@ -1,11 +1,17 @@
 """Billing — provider-aware (Stripe or Lemon Squeezy).
 
 Same public checkout paths regardless of provider, so the frontend only needs the
-capability flags from /api/config. PAYMENT_PROVIDER selects the active provider.
+capability flags + catalog from /api/config. PAYMENT_PROVIDER selects the provider.
 
 - Stripe: subscription + anonymous one-off pay-per-use (verify -> single-use token).
-- Lemon Squeezy (Merchant of Record, works in Kosovo): subscription + credit packs.
-  Paid usage is account-based; fulfillment is webhook-driven.
+- Lemon Squeezy (Merchant of Record, works in Kosovo): multi-plan subscriptions +
+  one-time credit packs. Fulfillment is webhook-driven:
+    * order_created            -> grant pack credits (idempotent)
+    * order_refunded           -> deduct pack credits (idempotent)
+    * subscription_created     -> activate plan, set monthly credit allowance
+    * subscription_updated     -> status / plan changes
+    * subscription_payment_*   -> refill monthly allowance on renewal
+    * subscription_expired     -> revoke plan + allowance
 """
 import json
 from typing import Optional
@@ -19,6 +25,7 @@ from auth import create_pay_token, get_current_user
 from config import settings
 from db import get_session
 from models import RedeemedSession, User
+from plans import pack_credits, plan_monthly_credits
 from services import lemonsqueezy as ls
 
 router = APIRouter(prefix="/api", tags=["billing"])
@@ -29,6 +36,14 @@ if settings.stripe_secret_key:
 
 class CheckoutResponse(BaseModel):
     url: str
+
+
+class SubscriptionCheckoutRequest(BaseModel):
+    plan: str = "pro"  # creator | pro | agency
+
+
+class CreditsCheckoutRequest(BaseModel):
+    pack: str = "small"  # small | large
 
 
 class VerifyRequest(BaseModel):
@@ -55,19 +70,25 @@ def _find_user_by(session: Session, *, user_id=None, email=None) -> Optional[Use
     return None
 
 
+def _variant_id_from_order(attrs: dict) -> str:
+    return str((attrs.get("first_order_item") or {}).get("variant_id") or "")
+
+
 # --------------------------------------------------------------------------- #
 # Checkout (provider-dispatched)
 # --------------------------------------------------------------------------- #
 @router.post("/checkout/subscription", response_model=CheckoutResponse)
 def checkout_subscription(
+    req: SubscriptionCheckoutRequest,
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
-    """Recurring subscription checkout. Requires a logged-in account."""
+    """Recurring subscription checkout for a chosen plan. Requires an account."""
     if not settings.subscription_enabled:
         raise HTTPException(status_code=503, detail="Subscriptions are not configured.")
 
     if settings.payment_provider == "stripe":
+        # Stripe path keeps a single configured price (plan is ignored here).
         try:
             checkout = stripe.checkout.Session.create(
                 mode="subscription",
@@ -82,13 +103,16 @@ def checkout_subscription(
             raise HTTPException(status_code=502, detail=f"Stripe error: {e}")
         return CheckoutResponse(url=checkout.url)
 
-    # Lemon Squeezy
+    # Lemon Squeezy: resolve the plan -> variant.
+    variant_id = settings.plan_variant_map.get(req.plan)
+    if not variant_id:
+        raise HTTPException(status_code=400, detail="Unknown or unavailable plan.")
     try:
         url = ls.create_checkout(
-            variant_id=settings.lemonsqueezy_subscription_variant_id,
+            variant_id=variant_id,
             redirect_url=f"{settings.frontend_url}/?subscribed=success",
             email=user.email,
-            custom={"user_id": user.id, "kind": "subscription"},
+            custom={"user_id": user.id, "kind": "subscription", "plan": req.plan},
         )
     except ls.LemonSqueezyError as e:
         raise HTTPException(status_code=502, detail=f"Lemon Squeezy error: {e}")
@@ -97,18 +121,22 @@ def checkout_subscription(
 
 @router.post("/checkout/credits", response_model=CheckoutResponse)
 def checkout_credits(
+    req: CreditsCheckoutRequest,
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
     """Buy a one-time credit pack (Lemon Squeezy). Requires a logged-in account."""
     if not settings.credits_purchase_enabled:
         raise HTTPException(status_code=503, detail="Credit purchases are not configured.")
+    variant_id = settings.pack_variant_map.get(req.pack)
+    if not variant_id:
+        raise HTTPException(status_code=400, detail="Unknown or unavailable credit pack.")
     try:
         url = ls.create_checkout(
-            variant_id=settings.lemonsqueezy_credits_variant_id,
+            variant_id=variant_id,
             redirect_url=f"{settings.frontend_url}/?credits=success",
             email=user.email,
-            custom={"user_id": user.id, "kind": "credits"},
+            custom={"user_id": user.id, "kind": "credits", "pack": req.pack},
         )
     except ls.LemonSqueezyError as e:
         raise HTTPException(status_code=502, detail=f"Lemon Squeezy error: {e}")
@@ -120,7 +148,7 @@ def checkout_credits(
 # --------------------------------------------------------------------------- #
 @router.post("/checkout/pay-per-use", response_model=CheckoutResponse)
 def checkout_pay_per_use():
-    """One-time $0.99 checkout, no account (Stripe only)."""
+    """One-time checkout, no account (Stripe only)."""
     if not settings.pay_per_use_enabled:
         raise HTTPException(status_code=503, detail="Pay-per-use is not available.")
     try:
@@ -132,7 +160,7 @@ def checkout_pay_per_use():
                     "currency": "usd",
                     "product_data": {
                         "name": "1 Video Analysis",
-                        "description": "AI Hook, Retention, and Viral Potential Scoring",
+                        "description": "AI hook, retention & viral scoring + hashtags + best time to post",
                     },
                     "unit_amount": settings.pay_per_use_amount_cents,
                 },
@@ -190,6 +218,9 @@ async def stripe_webhook(request: Request, session: Session = Depends(get_sessio
         user = _find_user_by(session, user_id=obj.get("client_reference_id"), email=email)
         if user:
             user.subscription_status = "active"
+            # Stripe path uses a single plan tier (Pro) with its monthly allowance.
+            user.plan = "pro"
+            user.subscription_credits = plan_monthly_credits("pro")
             if obj.get("customer"):
                 user.stripe_customer_id = obj["customer"]
             session.add(user)
@@ -200,6 +231,8 @@ async def stripe_webhook(request: Request, session: Session = Depends(get_sessio
             user = session.exec(select(User).where(User.stripe_customer_id == customer_id)).first()
             if user:
                 user.subscription_status = "canceled"
+                user.plan = "free"
+                user.subscription_credits = 0
                 session.add(user)
                 session.commit()
 
@@ -208,7 +241,7 @@ async def stripe_webhook(request: Request, session: Session = Depends(get_sessio
 
 @router.post("/lemonsqueezy/webhook")
 async def lemonsqueezy_webhook(request: Request, session: Session = Depends(get_session)):
-    """Fulfill Lemon Squeezy orders (credits) and subscriptions."""
+    """Fulfill Lemon Squeezy orders (credit packs) and subscriptions."""
     if settings.payment_provider != "lemonsqueezy":
         raise HTTPException(status_code=404, detail="Not found.")
     if not settings.lemonsqueezy_webhook_secret:
@@ -226,28 +259,68 @@ async def lemonsqueezy_webhook(request: Request, session: Session = Depends(get_
     attrs = data.get("attributes") or {}
     data_id = str(data.get("id") or "")
 
+    # --- One-time credit packs ---------------------------------------------- #
     if event_name == "order_created":
         if custom.get("kind") == "credits" and attrs.get("status") == "paid":
-            # Idempotent: only credit once per order.
-            key = f"ls_order_{data_id}"
-            if not session.get(RedeemedSession, key):
+            pack_key = custom.get("pack") or settings.variant_to_pack.get(_variant_id_from_order(attrs))
+            credits = pack_credits(pack_key)
+            key = f"ls_order_{data_id}"  # idempotent: credit once per order
+            if credits and not session.get(RedeemedSession, key):
                 user = _find_user_by(session, user_id=custom.get("user_id"), email=attrs.get("user_email"))
                 if user:
-                    user.credits += settings.credit_pack_size
+                    user.credits += credits
                     session.add(user)
                     session.add(RedeemedSession(session_id=key))
                     session.commit()
 
+    elif event_name == "order_refunded":
+        pack_key = custom.get("pack") or settings.variant_to_pack.get(_variant_id_from_order(attrs))
+        credits = pack_credits(pack_key)
+        key = f"ls_refund_{data_id}"  # idempotent: deduct once per refund
+        if credits and not session.get(RedeemedSession, key):
+            user = _find_user_by(session, user_id=custom.get("user_id"), email=attrs.get("user_email"))
+            if user:
+                user.credits = max(0, user.credits - credits)
+                session.add(user)
+                session.add(RedeemedSession(session_id=key))
+                session.commit()
+
+    # --- Subscriptions ------------------------------------------------------ #
+    elif event_name == "subscription_payment_success":
+        # Renewal invoice — refill the monthly allowance for the user's plan.
+        sub_id = str(attrs.get("subscription_id") or "")
+        user = _find_user_by(session, user_id=custom.get("user_id"), email=attrs.get("user_email"))
+        if not user and sub_id:
+            user = session.exec(select(User).where(User.subscription_id == sub_id)).first()
+        if user:
+            user.subscription_status = "active"
+            user.subscription_credits = plan_monthly_credits(user.plan)
+            session.add(user)
+            session.commit()
+
     elif event_name and event_name.startswith("subscription_"):
         status = attrs.get("status")
-        active = status in ls.ACTIVE_STATUSES
+        plan_key = settings.variant_to_plan.get(str(attrs.get("variant_id") or ""))
         user = _find_user_by(session, user_id=custom.get("user_id"), email=attrs.get("user_email"))
         if not user and data_id:
             user = session.exec(select(User).where(User.subscription_id == data_id)).first()
         if user:
-            user.subscription_status = "active" if active else "canceled"
-            if data_id:
-                user.subscription_id = data_id
+            if event_name in ("subscription_expired", "subscription_unpaid") or status in ("expired", "unpaid"):
+                # Period ended / payment failed — revoke access.
+                user.subscription_status = "canceled"
+                user.plan = "free"
+                user.subscription_credits = 0
+            elif status in ls.ACTIVE_STATUSES:  # active | on_trial
+                user.subscription_status = "active"
+                if data_id:
+                    user.subscription_id = data_id
+                if plan_key:
+                    plan_changed = plan_key != user.plan
+                    user.plan = plan_key
+                    if event_name == "subscription_created" or plan_changed:
+                        user.subscription_credits = plan_monthly_credits(plan_key)
+            # "cancelled" (set to not-renew but still within the paid period) is
+            # intentionally left active until the subscription_expired event.
             session.add(user)
             session.commit()
 

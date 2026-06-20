@@ -6,7 +6,10 @@ import { api, setToken, clearToken, getToken } from './api';
 export interface User {
   id: number;
   email: string;
-  credits: number;
+  credits: number;             // purchased pack credits (never expire)
+  subscription_credits: number; // monthly plan allowance (refills)
+  total_credits: number;        // spendable now
+  plan: string;                 // "free" | "creator" | "pro" | "agency"
   subscription_status: string;
 }
 

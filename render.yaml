@@ -1,9 +1,9 @@
-# Render Blueprint for the VidAnalyzer backend + managed Postgres.
+# Render Blueprint for the ViralYzer backend + managed Postgres.
 # Deploy: push to GitHub, then Render → New → Blueprint → pick this repo.
 # Secret values (sync:false) are entered in the Render dashboard after creation.
 services:
   - type: web
-    name: vidanalyzer-api
+    name: viralyzer-api
     runtime: docker
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
@@ -18,7 +18,7 @@ services:
         generateValue: true    # Render generates a strong secret (satisfies prod guard)
       - key: DATABASE_URL
         fromDatabase:
-          name: vidanalyzer-db
+          name: viralyzer-db
           property: connectionString
       - key: OPENAI_API_KEY
         sync: false            # set in dashboard
@@ -31,13 +31,21 @@ services:
         sync: false
       - key: LEMONSQUEEZY_WEBHOOK_SECRET
         sync: false
-      - key: LEMONSQUEEZY_SUBSCRIPTION_VARIANT_ID
-        sync: false
-      - key: LEMONSQUEEZY_CREDITS_VARIANT_ID
-        sync: false
+      # One variant id per subscription plan (create in the LS dashboard):
+      - key: LS_VARIANT_CREATOR
+        sync: false            # Creator €14/mo
+      - key: LS_VARIANT_PRO
+        sync: false            # Pro €29/mo
+      - key: LS_VARIANT_AGENCY
+        sync: false            # Agency €79/mo
+      # One variant id per one-time credit pack:
+      - key: LS_VARIANT_PACK_SMALL
+        sync: false            # 50 credits / €9
+      - key: LS_VARIANT_PACK_LARGE
+        sync: false            # 200 credits / €29
       - key: FRONTEND_URL
-        sync: false            # your Vercel URL, e.g. https://vidanalyzer.vercel.app
+        sync: false            # your Vercel URL, e.g. https://viralyzer.vercel.app
 
 databases:
-  - name: vidanalyzer-db
+  - name: viralyzer-db
     plan: free
