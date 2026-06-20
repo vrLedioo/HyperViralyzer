@@ -7,7 +7,7 @@ services:
     runtime: docker
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
-    healthCheckPath: /
+    healthCheckPath: /api/health
     plan: starter   # 'free' also works; starter avoids cold-start sleeps
     envVars:
       - key: APP_ENV
@@ -45,6 +45,13 @@ services:
         sync: false            # your Vercel/custom domain URL, e.g. https://hyperyzer.com
       - key: RESEND_API_KEY
         sync: false            # from resend.com dashboard — used for password-reset emails
+      # Optional: comma-separated list of allowed CORS origins (defaults to FRONTEND_URL).
+      # Set this if you want both apex + www: "https://hyperyzer.com,https://www.hyperyzer.com"
+      # - key: CORS_ORIGINS
+      #   value: https://hyperyzer.com,https://www.hyperyzer.com
+      # Optional: set to "true" to use Paddle sandbox for testing (omit in production).
+      # - key: PADDLE_SANDBOX
+      #   value: "false"
 
 databases:
   - name: hyperyzer-db

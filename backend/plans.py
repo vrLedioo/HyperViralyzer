@@ -1,8 +1,9 @@
 """Subscription plans and one-time credit packs — the pricing catalog.
 
 This is the single source of truth for what we sell. Prices here are *display
-only*; the real charge lives in the matching Lemon Squeezy variant. Each plan /
-pack is linked to a Lemon Squeezy **variant id** supplied via env (see config).
+only*; the real charge lives in the matching provider price/variant. Each plan /
+pack is linked to a price id supplied via env vars (see config for the active
+payment provider — Paddle, Lemon Squeezy, or Stripe).
 
 Monetization model:
   - A subscription grants a monthly bucket of credits (`monthly_credits`) that is

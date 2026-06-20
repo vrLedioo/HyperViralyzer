@@ -43,10 +43,31 @@ def _reconcile_orphaned_jobs():
             session.commit()
 
 
+def _purge_expired_reset_tokens():
+    """Delete used or expired password-reset tokens on startup to prevent DB bloat."""
+    from datetime import datetime, timezone
+    from sqlmodel import Session, select
+    from db import engine
+    from models import PasswordResetToken
+
+    now = datetime.now(timezone.utc)
+    with Session(engine) as session:
+        stale = session.exec(
+            select(PasswordResetToken).where(
+                (PasswordResetToken.used == True) | (PasswordResetToken.expires_at < now)  # noqa: E712
+            )
+        ).all()
+        for t in stale:
+            session.delete(t)
+        if stale:
+            session.commit()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     create_db_and_tables()
     _reconcile_orphaned_jobs()
+    _purge_expired_reset_tokens()
     yield
 
 
@@ -74,6 +95,20 @@ def read_root():
     return {"message": "Hyperyzer API is running"}
 
 
+@app.get("/api/health")
+def health_check():
+    """Liveness + DB connectivity check used by Render's health-check probe."""
+    try:
+        from sqlmodel import Session, text as sql_text
+        from db import engine
+        with Session(engine) as s:
+            s.exec(sql_text("SELECT 1"))
+        return {"status": "ok", "db": "connected"}
+    except Exception as exc:
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=503, content={"status": "error", "detail": str(exc)})
+
+
 class PlanOut(BaseModel):
     key: str
     name: str
@@ -82,7 +117,7 @@ class PlanOut(BaseModel):
     priority: bool
     team: bool
     tagline: str
-    available: bool  # a Lemon Squeezy variant is configured for this plan
+    available: bool  # the active payment provider has a price configured for this plan
 
 
 class PackOut(BaseModel):
@@ -97,7 +132,7 @@ class ConfigResponse(BaseModel):
     payment_provider: str          # "none" | "paddle" | "stripe" | "lemonsqueezy"
     billing_enabled: bool          # any paid option available
     subscription_enabled: bool     # subscription checkout available
-    credits_purchase_enabled: bool # logged-in credit-pack top-up (Lemon Squeezy)
+    credits_purchase_enabled: bool # logged-in credit-pack top-up
     pay_per_use_enabled: bool      # anonymous one-off (Stripe)
     byok_enabled: bool             # users may supply their own OpenAI key
     server_llm_ready: bool         # server can analyze without a caller key

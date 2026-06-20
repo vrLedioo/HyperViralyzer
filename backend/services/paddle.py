@@ -51,7 +51,7 @@ def create_checkout(
 
     payload: dict = {
         "items": [{"price_id": price_id, "quantity": 1}],
-        "checkout": {"url": success_url},
+        "checkout": {"settings": {"success_url": success_url}},
     }
     if customer_email:
         payload["customer"] = {"email": customer_email}
