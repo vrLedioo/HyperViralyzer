@@ -1,5 +1,6 @@
 """Video analysis: upload → ffmpeg → Whisper → score, run as a background job."""
 import json
+import logging
 import os
 import uuid
 from datetime import datetime
@@ -16,14 +17,23 @@ from access import AccessDenied, resolve_access
 from auth import get_optional_user
 from config import settings
 from db import engine, get_session
+from limiter import limiter
 from models import Analysis, RedeemedSession, User, VideoJob
 from services.scoring import ScoringError, score_content
 from services.transcription import TranscriptionError, transcribe, transcription_satisfiable
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["video"])
 
 NON_TERMINAL = ("queued", "transcribing", "scoring")
 ALLOWED_VIDEO_EXTS = {".mp4", ".mov", ".webm", ".mkv", ".m4v", ".avi", ".flv", ".wmv"}
+ALLOWED_VIDEO_MIME_PREFIXES = ("video/",)
+ALLOWED_VIDEO_MIME_TYPES = {
+    "video/mp4", "video/quicktime", "video/webm", "video/x-matroska",
+    "video/x-m4v", "video/x-msvideo", "video/x-flv", "video/x-ms-wmv",
+    "video/mpeg", "video/ogg", "application/octet-stream",
+}
 
 
 class JobResponse(BaseModel):
@@ -110,9 +120,10 @@ def _process_video(job_id: int, file_path: str, title: str, byok_key: Optional[s
             job.error = str(e)
             session.add(job)
             session.commit()
-        except Exception as e:  # noqa: BLE001
+        except Exception:  # noqa: BLE001
+            logger.exception("Unexpected error processing video job %s", job_id)
             job.status = "error"
-            job.error = f"Unexpected error: {e}"
+            job.error = "An unexpected error occurred. Please try again or contact support."
             session.add(job)
             session.commit()
         finally:
@@ -123,6 +134,7 @@ def _process_video(job_id: int, file_path: str, title: str, byok_key: Optional[s
 
 
 @router.post("/analyze-video", response_model=JobResponse)
+@limiter.limit("10/minute")
 async def analyze_video(
     request: Request,
     background: BackgroundTasks,
@@ -143,6 +155,11 @@ async def analyze_video(
         raise HTTPException(
             status_code=413, detail=f"File too large (max {settings.max_upload_mb} MB)."
         )
+
+    # Validate MIME type (defence-in-depth; extension allowlist still applies later).
+    mime = (file.content_type or "").split(";")[0].strip().lower()
+    if mime and mime not in ALLOWED_VIDEO_MIME_TYPES and not mime.startswith("video/"):
+        raise HTTPException(status_code=415, detail="Only video files are accepted.")
 
     # Gate access up front (reject before doing any expensive work).
     try:

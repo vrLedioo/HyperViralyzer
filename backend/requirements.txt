@@ -13,3 +13,4 @@ bcrypt
 PyJWT
 stripe
 httpx
+slowapi

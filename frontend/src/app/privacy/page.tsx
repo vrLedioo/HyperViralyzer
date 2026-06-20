@@ -16,12 +16,6 @@ export default function Privacy() {
         <span className="text-lg font-bold tracking-tight">Hyperyzer</span>
       </Link>
 
-      <div className="mb-6 rounded-xl bg-amber-50 border border-amber-200 p-4 text-sm text-amber-900">
-        <strong>Template notice:</strong> This policy is a good-faith starting point, not legal
-        advice. Replace the bracketed details and have it reviewed by a qualified lawyer before you
-        rely on it for a live, paid service.
-      </div>
-
       <h1 className="text-3xl font-black tracking-tight">Privacy Policy</h1>
       <p className="text-slate-500 font-medium mt-1">Last updated: June 2026</p>
 
@@ -29,8 +23,8 @@ export default function Privacy() {
         <p>
           Hyperyzer (&ldquo;we&rdquo;, &ldquo;us&rdquo;) provides an AI tool that scores video
           ideas and uploaded videos for hook, retention, and viral potential. This policy explains
-          what we collect and how we use it. Operator: [your name / business], Kosovo.
-          Contact: <a href="mailto:[your-email@example.com]">[your-email@example.com]</a>.
+          what we collect and how we use it. Operator: Hyperyzer, Kosovo.
+          Contact: <a href="mailto:support@hyperyzer.com">support@hyperyzer.com</a>.
         </p>
 
         <h2>Information we collect</h2>
@@ -45,6 +39,14 @@ export default function Privacy() {
             key&rdquo;, your OpenAI key is used only to process that request and is not stored.</li>
         </ul>
 
+        <h2>Legal basis for processing (GDPR)</h2>
+        <p>
+          We process your data on the following legal bases: <strong>contract performance</strong>
+          (to provide the service you signed up for), <strong>legitimate interests</strong> (security,
+          fraud prevention, service improvement), and <strong>legal obligation</strong> (tax/VAT
+          records via Paddle as Merchant of Record).
+        </p>
+
         <h2>How we use your data</h2>
         <ul>
           <li>To provide the analysis service and your account features (history, credits, plan).</li>
@@ -55,47 +57,59 @@ export default function Privacy() {
         <h2>Third-party processors</h2>
         <ul>
           <li><strong>OpenAI</strong> — your titles, scripts, and video transcripts are sent to
-            OpenAI to generate scores and (for uploads) transcriptions.</li>
-          <li><strong>Paddle</strong> — our Merchant of Record; processes payments and handles
-            tax/VAT.</li>
-          <li><strong>Hosting</strong> — our app and database run on cloud infrastructure
-            (e.g. Render, Vercel).</li>
+            OpenAI to generate scores and (for uploads) transcriptions. Subject to OpenAI&apos;s
+            privacy policy.</li>
+          <li><strong>Paddle</strong> — our Merchant of Record; processes payments, issues invoices,
+            and handles tax/VAT. Subject to Paddle&apos;s privacy policy.</li>
+          <li><strong>Render &amp; Vercel</strong> — cloud infrastructure hosting our backend and
+            frontend respectively. Data is processed in their data centers (EU/US).</li>
         </ul>
 
         <h2>Video uploads</h2>
         <p>
           Uploaded video files are used only to extract audio for transcription and are deleted from
-          our servers after processing. The resulting transcript and scores are saved to your account
-          so you can review them.
+          our servers immediately after processing. The resulting transcript and scores are saved to
+          your account so you can review them.
         </p>
 
         <h2>Data retention</h2>
         <p>
           We keep your account and analysis history until you delete your account or ask us to remove
-          it. Contact us to request deletion.
+          it. You can delete your account at any time from your account settings or by contacting us.
+          Payment transaction records are retained as required by applicable tax law (typically 7 years).
         </p>
 
-        <h2>Your rights</h2>
+        <h2>Your rights (GDPR)</h2>
         <p>
-          Depending on your location (including under the GDPR), you may have the right to access,
-          correct, export, or delete your personal data, and to object to certain processing. To
-          exercise these rights, contact <a href="mailto:[your-email@example.com]">[your-email@example.com]</a>.
+          If you are in the EU, EEA, or UK you have the right to: access your data, correct inaccurate
+          data, request erasure (right to be forgotten), restrict or object to processing, and receive
+          a machine-readable copy of your data (data portability). You can export all your data at any
+          time from your account settings. To delete your account or exercise any right, contact
+          {' '}<a href="mailto:support@hyperyzer.com">support@hyperyzer.com</a>. You also have the right
+          to lodge a complaint with your local data protection authority.
         </p>
 
         <h2>Cookies &amp; local storage</h2>
         <p>
-          We use your browser&rsquo;s local storage to keep you signed in (an authentication token).
-          This is essential to the service. We do not use third-party advertising or tracking cookies.
+          We use your browser&rsquo;s local storage solely to keep you signed in (an authentication
+          token). This is strictly necessary for the service to function. We do not use advertising
+          cookies, third-party tracking cookies, or analytics cookies.
         </p>
 
         <h2>Children</h2>
         <p>The service is not intended for anyone under 16. Do not use it if you are under 16.</p>
 
+        <h2>International transfers</h2>
+        <p>
+          Your data may be processed in the United States (OpenAI, Vercel, Render). Where required,
+          such transfers rely on Standard Contractual Clauses or equivalent safeguards.
+        </p>
+
         <h2>Changes</h2>
-        <p>We may update this policy; material changes will be reflected by the &ldquo;Last updated&rdquo; date above.</p>
+        <p>We may update this policy; material changes will be reflected by the &ldquo;Last updated&rdquo; date above. Continued use of the service after changes constitutes acceptance.</p>
 
         <h2>Contact</h2>
-        <p>Questions? <a href="mailto:[your-email@example.com]">[your-email@example.com]</a>.</p>
+        <p>Questions or data requests: <a href="mailto:support@hyperyzer.com">support@hyperyzer.com</a>.</p>
       </div>
 
       <div className="mt-12 pt-6 border-t border-black/5 text-sm font-bold text-slate-500 flex flex-wrap gap-4">

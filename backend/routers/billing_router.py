@@ -21,6 +21,7 @@ capability flags + catalog from /api/config. PAYMENT_PROVIDER selects the provid
     * subscription_expired     -> revoke plan + allowance
 """
 import json
+import time
 from typing import Optional
 
 import stripe
@@ -238,6 +239,17 @@ def verify_pay_per_use(req: VerifyRequest):
 # --------------------------------------------------------------------------- #
 
 # -- Paddle helpers --------------------------------------------------------- #
+def _paddle_ts_fresh(sig_header: str, max_age: int = 300) -> bool:
+    """Reject Paddle webhooks with a timestamp older than max_age seconds (replay protection)."""
+    for segment in (sig_header or "").split(";"):
+        if segment.startswith("ts="):
+            try:
+                return abs(time.time() - int(segment[3:])) <= max_age
+            except ValueError:
+                return False
+    return False
+
+
 def _paddle_email(data: dict) -> str | None:
     return (data.get("customer") or {}).get("email")
 
@@ -263,6 +275,8 @@ async def paddle_webhook(request: Request, session: Session = Depends(get_sessio
     sig = request.headers.get("paddle-signature")
     if not paddle_svc.verify_signature(payload, sig):
         raise HTTPException(status_code=400, detail="Invalid webhook signature.")
+    if not _paddle_ts_fresh(sig or ""):
+        raise HTTPException(status_code=400, detail="Webhook timestamp expired.")
 
     event = json.loads(payload)
     event_type = str(event.get("event_type") or "")

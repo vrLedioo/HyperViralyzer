@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
@@ -11,6 +11,7 @@ from access import AccessDenied, apply_consumption, resolve_access
 from auth import get_current_user, get_optional_user
 from config import settings
 from db import get_session
+from limiter import limiter
 from models import Analysis, User
 from services.scoring import ScoringError, score_content
 
@@ -92,16 +93,18 @@ def save_analysis(
 
 
 @router.post("/analyze-idea", response_model=AnalyzeResponse)
+@limiter.limit("30/minute")
 def analyze_idea(
-    request: AnalyzeRequest,
+    request: Request,
+    req: AnalyzeRequest,
     user: Optional[User] = Depends(get_optional_user),
     session: Session = Depends(get_session),
 ):
     try:
         grant = resolve_access(
             user=user,
-            user_api_key=request.user_api_key,
-            pay_token=request.pay_token,
+            user_api_key=req.user_api_key,
+            pay_token=req.pay_token,
             session=session,
             cost=settings.idea_credit_cost,
         )
@@ -110,8 +113,8 @@ def analyze_idea(
 
     try:
         result = score_content(
-            request.title, request.script,
-            platform=request.platform, audience=request.audience,
+            req.title, req.script,
+            platform=req.platform, audience=req.audience,
             byok_key=grant.byok_key,
         )
     except ScoringError as e:
@@ -125,8 +128,8 @@ def analyze_idea(
     # Only spend the credit / pay token after a successful analysis.
     apply_consumption(grant, session)
     save_analysis(
-        session, user=user, kind="idea", title=request.title,
-        input_text=request.script, result=result, platform=request.platform or "",
+        session, user=user, kind="idea", title=req.title,
+        input_text=req.script, result=result, platform=req.platform or "",
     )
 
     return AnalyzeResponse(
@@ -144,11 +147,15 @@ def analyze_idea(
 def history(
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
+    limit: int = 50,
+    offset: int = 0,
 ):
     rows = session.exec(
         select(Analysis)
         .where(Analysis.user_id == user.id)
         .order_by(Analysis.created_at.desc())
+        .limit(min(limit, 200))
+        .offset(max(offset, 0))
     ).all()
     return [
         AnalysisOut(
