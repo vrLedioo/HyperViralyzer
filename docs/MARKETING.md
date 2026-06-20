@@ -1,4 +1,4 @@
-# ViralYzer — Brand & Launch Kit
+# Hyperyzer — Brand & Launch Kit
 
 Everything you need to position and launch. Copy/paste-ready.
 
@@ -24,7 +24,7 @@ Free to start, credit packs as you go, or a monthly plan.
 (auto-transcribed), and gives blunt, actionable feedback — not vague tips.
 
 ### Name & tagline
-- **Name:** ViralYzer.
+- **Name:** Hyperyzer.
 - **Primary tagline:** *Make every video hit — before you post it.*
 - **Alternates:** "Score it, tag it, time it — then post." · "Your hook, hashtags & timing, graded by AI." ·
   "Stop posting videos that flop."
@@ -37,12 +37,12 @@ hooks, retention, hashtags, the algorithm* — the words creators actually use. 
 
 ## 2. Product Hunt launch kit
 
-**Name:** ViralYzer
+**Name:** Hyperyzer
 **Tagline (60 char max):** Score your video + get the best hashtags & post time
 **Topics:** Artificial Intelligence, Video, Marketing, Creator Tools
 
 **First comment (maker):**
-> Hey PH 👋 I built ViralYzer because I kept spending whole afternoons on videos that flopped —
+> Hey PH 👋 I built Hyperyzer because I kept spending whole afternoons on videos that flopped —
 > usually a weak first 5 seconds, the wrong hashtags, or posting at a dead hour.
 >
 > You paste your title + hook (or upload the actual clip — it transcribes it for you) and get a
@@ -82,7 +82,7 @@ actually said — same full report.
 [link]
 
 **Single-tweet version:**
-> Stop posting videos that flop. ViralYzer scores your hook, retention & viral potential, then
+> Stop posting videos that flop. Hyperyzer scores your hook, retention & viral potential, then
 > gives you the best hashtags + the best time to post — in seconds. Free to try 👉 [link]
 
 ---
@@ -110,7 +110,7 @@ posts as "built this, want feedback," never "buy this."
 
 > Hey {first_name},
 >
-> Quick one. I just launched **ViralYzer** — it scores your video's hook, retention, and viral
+> Quick one. I just launched **Hyperyzer** — it scores your video's hook, retention, and viral
 > potential with AI, tells you exactly what to fix, and hands you the best hashtags and the best
 > time to post. Before you publish.
 >
@@ -132,7 +132,7 @@ posts as "built this, want feedback," never "buy this."
       — hit indie/AI/creator-tool directories (e.g. AI tool listings, SaaS directories).
 - [ ] Make 3 short demo clips (score a famous video + show its hashtags/post time) → post as Shorts/TikToks. Meta = marketing.
 - [ ] DM 20 small creators offering a free report on their next video.
-- [ ] Add a "Powered by ViralYzer" share card on results to drive loops.
+- [ ] Add a "Powered by Hyperyzer" share card on results to drive loops.
 
 ### Conversion levers already built in
 - A free tier (10 credits) removes signup friction; BYOK removes commitment friction.

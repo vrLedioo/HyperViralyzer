@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 
 export const metadata = {
-  title: 'ViralYzer — Score your video, get the best hashtags & best time to post',
+  title: 'Hyperyzer — Score your video, get the best hashtags & best time to post',
   description:
     "AI scores your video's hook, retention, and viral potential, then hands you the best hashtags and the best time to post — in seconds. Free to start.",
 };
@@ -59,7 +59,7 @@ function Logo() {
       <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center shadow-md">
         <Play className="w-4.5 h-4.5 text-white fill-white ml-0.5" />
       </div>
-      <span className="text-lg font-bold text-slate-900 tracking-tight">ViralYzer</span>
+      <span className="text-lg font-bold text-slate-900 tracking-tight">Hyperyzer</span>
     </div>
   );
 }
@@ -86,7 +86,7 @@ export default function Landing() {
           <span className="bg-gradient-to-r from-pink-500 to-orange-500 bg-clip-text text-transparent"> before you post it.</span>
         </h1>
         <p className="mt-6 text-lg sm:text-xl text-slate-600 font-medium max-w-2xl mx-auto leading-relaxed">
-          ViralYzer scores your hook, retention, and viral potential, then hands you the
+          Hyperyzer scores your hook, retention, and viral potential, then hands you the
           best hashtags and the best time to post — in seconds, with the exact fixes to get more views.
         </p>
         <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -147,7 +147,7 @@ export default function Landing() {
         <p className="mt-4 text-lg text-slate-600 font-medium max-w-2xl mx-auto leading-relaxed">
           Most videos don&apos;t fail on editing — they fail in the first 5 seconds, with the wrong tags,
           posted at the wrong time. You only find out <em>after</em> you&apos;ve spent hours filming.
-          ViralYzer tells you <span className="font-bold text-slate-800">before</span> you hit post.
+          Hyperyzer tells you <span className="font-bold text-slate-800">before</span> you hit post.
         </p>
       </section>
 
@@ -237,7 +237,7 @@ export default function Landing() {
       {/* Footer */}
       <footer className="max-w-6xl mx-auto px-5 sm:px-8 py-10 border-t border-black/5 flex flex-col sm:flex-row items-center justify-between gap-4">
         <Logo />
-        <p className="text-sm text-slate-500 font-medium">© {new Date().getFullYear()} ViralYzer · AI growth toolkit for creators</p>
+        <p className="text-sm text-slate-500 font-medium">© {new Date().getFullYear()} Hyperyzer · AI growth toolkit for creators</p>
         <div className="flex flex-wrap gap-4 text-sm font-bold text-slate-600">
           <Link href="/app" className="hover:text-slate-900">Open app</Link>
           <Link href="/pricing" className="hover:text-slate-900">Pricing</Link>

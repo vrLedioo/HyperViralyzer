@@ -47,7 +47,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="ViralYzer API", lifespan=lifespan)
+app = FastAPI(title="Hyperyzer API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -65,7 +65,7 @@ app.include_router(video_router)
 
 @app.get("/")
 def read_root():
-    return {"message": "ViralYzer API is running"}
+    return {"message": "Hyperyzer API is running"}
 
 
 class PlanOut(BaseModel):

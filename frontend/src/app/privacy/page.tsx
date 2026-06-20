@@ -2,8 +2,8 @@ import Link from 'next/link';
 import { Play } from 'lucide-react';
 
 export const metadata = {
-  title: 'Privacy Policy — ViralYzer',
-  description: 'How ViralYzer collects, uses, and protects your data.',
+  title: 'Privacy Policy — Hyperyzer',
+  description: 'How Hyperyzer collects, uses, and protects your data.',
 };
 
 export default function Privacy() {
@@ -13,7 +13,7 @@ export default function Privacy() {
         <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center shadow-md">
           <Play className="w-4 h-4 text-white fill-white ml-0.5" />
         </div>
-        <span className="text-lg font-bold tracking-tight">ViralYzer</span>
+        <span className="text-lg font-bold tracking-tight">Hyperyzer</span>
       </Link>
 
       <div className="mb-6 rounded-xl bg-amber-50 border border-amber-200 p-4 text-sm text-amber-900">
@@ -27,7 +27,7 @@ export default function Privacy() {
 
       <div className="prose-sm mt-8 space-y-6 text-slate-700 leading-relaxed [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-slate-900 [&_h2]:mt-8 [&_h2]:mb-2 [&_li]:ml-5 [&_li]:list-disc [&_a]:text-pink-600 [&_a]:underline">
         <p>
-          ViralYzer (&ldquo;we&rdquo;, &ldquo;us&rdquo;) provides an AI tool that scores video
+          Hyperyzer (&ldquo;we&rdquo;, &ldquo;us&rdquo;) provides an AI tool that scores video
           ideas and uploaded videos for hook, retention, and viral potential. This policy explains
           what we collect and how we use it. Operator: [your name / business], Kosovo.
           Contact: <a href="mailto:[your-email@example.com]">[your-email@example.com]</a>.

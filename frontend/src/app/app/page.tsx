@@ -358,7 +358,7 @@ export default function Home() {
             <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center shadow-md">
               <Play className="w-5 h-5 text-white fill-white ml-0.5" />
             </div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight group-hover:text-pink-600 transition-colors">ViralYzer</h1>
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight group-hover:text-pink-600 transition-colors">Hyperyzer</h1>
           </Link>
         </div>
 

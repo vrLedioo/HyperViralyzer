@@ -2,8 +2,8 @@ import Link from 'next/link';
 import { Play } from 'lucide-react';
 
 export const metadata = {
-  title: 'Refund Policy — ViralYzer',
-  description: 'How refunds work for ViralYzer subscriptions and credit packs.',
+  title: 'Refund Policy — Hyperyzer',
+  description: 'How refunds work for Hyperyzer subscriptions and credit packs.',
 };
 
 export default function Refund() {
@@ -13,7 +13,7 @@ export default function Refund() {
         <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center shadow-md">
           <Play className="w-4 h-4 text-white fill-white ml-0.5" />
         </div>
-        <span className="text-lg font-bold tracking-tight">ViralYzer</span>
+        <span className="text-lg font-bold tracking-tight">Hyperyzer</span>
       </Link>
 
       <div className="mb-6 rounded-xl bg-amber-50 border border-amber-200 p-4 text-sm text-amber-900">
@@ -27,7 +27,7 @@ export default function Refund() {
 
       <div className="prose-sm mt-8 space-y-6 text-slate-700 leading-relaxed [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-slate-900 [&_h2]:mt-8 [&_h2]:mb-2 [&_li]:ml-5 [&_li]:list-disc [&_a]:text-pink-600 [&_a]:underline">
         <p>
-          This Refund Policy explains how refunds work for ViralYzer (the &ldquo;Service&rdquo;),
+          This Refund Policy explains how refunds work for Hyperyzer (the &ldquo;Service&rdquo;),
           operated by [your name / business], Kosovo. Payments are processed by our payment provider,
           <strong> Paddle</strong>, which acts as the Merchant of Record (the seller of record) and
           handles billing, taxes, and refunds on our behalf. Paddle&rsquo;s own buyer terms also apply
@@ -36,7 +36,7 @@ export default function Refund() {
 
         <h2>Digital products</h2>
         <p>
-          ViralYzer sells <strong>subscription plans</strong> and one-time <strong>credit packs</strong>.
+          Hyperyzer sells <strong>subscription plans</strong> and one-time <strong>credit packs</strong>.
           These are digital products delivered instantly (as credits added to your account), so the
           rules below reflect that.
         </p>

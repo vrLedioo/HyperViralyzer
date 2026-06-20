@@ -2,8 +2,8 @@ import Link from 'next/link';
 import { Play, Check, Star } from 'lucide-react';
 
 export const metadata = {
-  title: 'Pricing — ViralYzer',
-  description: 'ViralYzer plans and credit packs. Score your video, get the best hashtags and the best time to post.',
+  title: 'Pricing — Hyperyzer',
+  description: 'Hyperyzer plans and credit packs. Score your video, get the best hashtags and the best time to post.',
 };
 
 const PLANS = [
@@ -37,7 +37,7 @@ export default function Pricing() {
         <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center shadow-md">
           <Play className="w-4 h-4 text-white fill-white ml-0.5" />
         </div>
-        <span className="text-lg font-bold tracking-tight">ViralYzer</span>
+        <span className="text-lg font-bold tracking-tight">Hyperyzer</span>
       </Link>
 
       <h1 className="text-3xl sm:text-4xl font-black tracking-tight">Pricing</h1>

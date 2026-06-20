@@ -1,6 +1,6 @@
 """Shared report logic used by both idea and video analysis.
 
-Produces a full "ViralYzer report" in a single model call:
+Produces a full "Hyperyzer report" in a single model call:
   - hook / retention / viral scores (0-100) + actionable feedback
   - best hashtags to use (primary / niche / broad), platform-tuned
   - best times to post (ranked slots + why), platform- and audience-tuned

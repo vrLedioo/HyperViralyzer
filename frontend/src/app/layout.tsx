@@ -8,7 +8,7 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 
 export const metadata: Metadata = {
-  title: "ViralYzer — AI Video Scoring, Hashtags & Best Time to Post",
+  title: "Hyperyzer — AI Video Scoring, Hashtags & Best Time to Post",
   description: "Score your video's hook, retention & viral potential, get the best hashtags, and the best time to post — all in seconds with AI.",
 };
 

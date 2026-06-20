@@ -1,4 +1,4 @@
-# ViralYzer — AI Growth Toolkit for Creators
+# Hyperyzer — AI Growth Toolkit for Creators
 
 A SaaS that turns a video idea or clip into a full **growth report**: hook / retention / viral
 scores (0–100) with actionable feedback, the **best hashtags** to use, and the **best time to

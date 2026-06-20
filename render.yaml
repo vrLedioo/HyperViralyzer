@@ -1,9 +1,9 @@
-# Render Blueprint for the ViralYzer backend + managed Postgres.
+# Render Blueprint for the Hyperyzer backend + managed Postgres.
 # Deploy: push to GitHub, then Render → New → Blueprint → pick this repo.
 # Secret values (sync:false) are entered in the Render dashboard after creation.
 services:
   - type: web
-    name: viralyzer-api
+    name: hyperyzer-api
     runtime: docker
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
@@ -18,7 +18,7 @@ services:
         generateValue: true    # Render generates a strong secret (satisfies prod guard)
       - key: DATABASE_URL
         fromDatabase:
-          name: viralyzer-db
+          name: hyperyzer-db
           property: connectionString
       - key: OPENAI_API_KEY
         sync: false            # set in dashboard
@@ -44,8 +44,8 @@ services:
       - key: LS_VARIANT_PACK_LARGE
         sync: false            # 200 credits / €29
       - key: FRONTEND_URL
-        sync: false            # your Vercel URL, e.g. https://viralyzer.vercel.app
+        sync: false            # your Vercel URL, e.g. https://hyperyzer.vercel.app
 
 databases:
-  - name: viralyzer-db
+  - name: hyperyzer-db
     plan: free

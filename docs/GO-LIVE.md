@@ -1,4 +1,4 @@
-# ViralYzer — Go-Live Runbook
+# Hyperyzer — Go-Live Runbook
 
 Step-by-step to publish and take real payments. The code is already production-ready —
 these are the things only **you** can do (they need your own accounts and secret keys).
@@ -46,7 +46,7 @@ Create these accounts (I can't create them for you):
 Push the repo:
 ```bash
 cd saas-video-analyzer
-gh repo create viralyzer --private --source=. --push   # or create on github.com and: git push
+gh repo create hyperyzer --private --source=. --push   # or create on github.com and: git push
 ```
 
 ---
@@ -57,9 +57,9 @@ Turn on **Test mode** (toggle in the dashboard) while setting up.
 1. **API key** — Settings → API → **Create API key** → copy it (`LEMONSQUEEZY_API_KEY`).
 2. **Store ID** — Settings → Stores (the numeric id, e.g. `12345`) → `LEMONSQUEEZY_STORE_ID`.
 3. **Create 3 subscription products** (Products → **+ New Product**, pricing **Subscription**):
-   - "ViralYzer Creator" — **€14 / month** → variant id → `LS_VARIANT_CREATOR`
-   - "ViralYzer Pro" — **€29 / month** → variant id → `LS_VARIANT_PRO`
-   - "ViralYzer Agency" — **€79 / month** → variant id → `LS_VARIANT_AGENCY`
+   - "Hyperyzer Creator" — **€14 / month** → variant id → `LS_VARIANT_CREATOR`
+   - "Hyperyzer Pro" — **€29 / month** → variant id → `LS_VARIANT_PRO`
+   - "Hyperyzer Agency" — **€79 / month** → variant id → `LS_VARIANT_AGENCY`
 4. **Create 2 credit-pack products** (pricing **Single payment**):
    - "50 Credits" — **€9** → variant id → `LS_VARIANT_PACK_SMALL`
    - "200 Credits" — **€29** → variant id → `LS_VARIANT_PACK_LARGE`
@@ -81,7 +81,7 @@ You now have: API key, store id, webhook secret, and up to 5 variant ids.
 
 ## 2. Deploy the backend (Render)
 1. Render → **New → Blueprint** → pick your repo. It reads `render.yaml` and creates the
-   `viralyzer-api` web service + a free Postgres DB. (`JWT_SECRET` is auto-generated; `DATABASE_URL`
+   `hyperyzer-api` web service + a free Postgres DB. (`JWT_SECRET` is auto-generated; `DATABASE_URL`
    is auto-wired; `PAYMENT_PROVIDER=lemonsqueezy` is preset.)
 2. In the service's **Environment**, fill the `sync:false` secrets:
    - `OPENAI_API_KEY` = your `sk-...`
