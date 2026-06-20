@@ -58,7 +58,7 @@ export default function Terms() {
             credit; a video analysis costs more (it includes transcription).</li>
           <li>You can buy credit packs or subscribe to an unlimited plan. Subscriptions renew
             automatically until cancelled.</li>
-          <li>Payments are processed by <strong>Lemon Squeezy</strong>, which acts as the Merchant of
+          <li>Payments are processed by <strong>Paddle</strong>, which acts as the Merchant of
             Record (seller) and handles applicable taxes. Their terms also apply to the transaction.</li>
           <li>If you use your own OpenAI key (&ldquo;BYOK&rdquo;), you are solely responsible for any
             costs your key incurs.</li>
@@ -66,8 +66,8 @@ export default function Terms() {
 
         <h2>Refunds</h2>
         <p>
-          Refunds are handled in line with Lemon Squeezy&rsquo;s policy and any statutory consumer
-          rights that apply to you. Contact us for refund requests.
+          Refunds are handled in line with our <a href="/refund">Refund Policy</a>, Paddle&rsquo;s
+          policy, and any statutory consumer rights that apply to you. Contact us for refund requests.
         </p>
 
         <h2>Intellectual property</h2>
@@ -101,9 +101,11 @@ export default function Terms() {
         <p><a href="mailto:[your-email@example.com]">[your-email@example.com]</a></p>
       </div>
 
-      <div className="mt-12 pt-6 border-t border-black/5 text-sm font-bold text-slate-500 flex gap-4">
+      <div className="mt-12 pt-6 border-t border-black/5 text-sm font-bold text-slate-500 flex flex-wrap gap-4">
         <Link href="/" className="hover:text-slate-900">Home</Link>
+        <Link href="/pricing" className="hover:text-slate-900">Pricing</Link>
         <Link href="/privacy" className="hover:text-slate-900">Privacy</Link>
+        <Link href="/refund" className="hover:text-slate-900">Refund</Link>
       </div>
     </div>
   );

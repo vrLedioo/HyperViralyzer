@@ -240,9 +240,10 @@ export default function Landing() {
         <p className="text-sm text-slate-500 font-medium">© {new Date().getFullYear()} ViralYzer · AI growth toolkit for creators</p>
         <div className="flex flex-wrap gap-4 text-sm font-bold text-slate-600">
           <Link href="/app" className="hover:text-slate-900">Open app</Link>
-          <Link href="/login" className="hover:text-slate-900">Log in</Link>
+          <Link href="/pricing" className="hover:text-slate-900">Pricing</Link>
           <Link href="/privacy" className="hover:text-slate-900">Privacy</Link>
           <Link href="/terms" className="hover:text-slate-900">Terms</Link>
+          <Link href="/refund" className="hover:text-slate-900">Refund</Link>
         </div>
       </footer>
     </div>

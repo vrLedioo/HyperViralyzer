@@ -39,7 +39,7 @@ export default function Privacy() {
           <li><strong>Content you submit:</strong> video titles, scripts/hooks, and any videos you
             upload — plus the transcripts and scores we generate from them.</li>
           <li><strong>Usage data:</strong> basic technical logs needed to run and secure the service.</li>
-          <li><strong>Payment data:</strong> handled entirely by our payment provider (Lemon Squeezy)
+          <li><strong>Payment data:</strong> handled entirely by our payment provider (Paddle)
             — we do not receive or store your card details.</li>
           <li><strong>Your own API key (optional):</strong> if you choose &ldquo;bring your own
             key&rdquo;, your OpenAI key is used only to process that request and is not stored.</li>
@@ -56,7 +56,7 @@ export default function Privacy() {
         <ul>
           <li><strong>OpenAI</strong> — your titles, scripts, and video transcripts are sent to
             OpenAI to generate scores and (for uploads) transcriptions.</li>
-          <li><strong>Lemon Squeezy</strong> — our Merchant of Record; processes payments and handles
+          <li><strong>Paddle</strong> — our Merchant of Record; processes payments and handles
             tax/VAT.</li>
           <li><strong>Hosting</strong> — our app and database run on cloud infrastructure
             (e.g. Render, Vercel).</li>
@@ -98,9 +98,11 @@ export default function Privacy() {
         <p>Questions? <a href="mailto:[your-email@example.com]">[your-email@example.com]</a>.</p>
       </div>
 
-      <div className="mt-12 pt-6 border-t border-black/5 text-sm font-bold text-slate-500 flex gap-4">
+      <div className="mt-12 pt-6 border-t border-black/5 text-sm font-bold text-slate-500 flex flex-wrap gap-4">
         <Link href="/" className="hover:text-slate-900">Home</Link>
+        <Link href="/pricing" className="hover:text-slate-900">Pricing</Link>
         <Link href="/terms" className="hover:text-slate-900">Terms</Link>
+        <Link href="/refund" className="hover:text-slate-900">Refund</Link>
       </div>
     </div>
   );
