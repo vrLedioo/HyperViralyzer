@@ -28,7 +28,7 @@ class User(SQLModel, table=True):
     # Active plan key ("creator" | "pro" | "agency"), or "free".
     plan: str = "free"
     stripe_customer_id: Optional[str] = Field(default=None, index=True)
-    # Provider subscription id (Lemon Squeezy / Stripe) for cancel matching.
+    # Provider subscription id (Paddle / Lemon Squeezy / Stripe) for cancel matching.
     subscription_id: Optional[str] = Field(default=None, index=True)
     created_at: datetime = Field(default_factory=_utcnow)
 
@@ -80,4 +80,14 @@ class VideoJob(SQLModel, table=True):
     # Access path used ("byok" | "subscription" | "credit" | "pay-token").
     method: Optional[str] = None
     analysis_id: Optional[int] = Field(default=None, foreign_key="analysis.id")
+    created_at: datetime = Field(default_factory=_utcnow)
+
+
+class PasswordResetToken(SQLModel, table=True):
+    """Single-use password reset tokens, valid for 1 hour."""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    token: str = Field(index=True, unique=True)
+    user_id: int = Field(foreign_key="user.id", index=True)
+    expires_at: datetime
+    used: bool = False
     created_at: datetime = Field(default_factory=_utcnow)

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   Play, Sparkles, History, BrainCircuit, CheckCircle2, TrendingUp, Target, Zap,
   Clock, AlertCircle, Key, CreditCard, ChevronRight, LogOut, User as UserIcon,
-  Lightbulb, Video, UploadCloud, FileText, Crown, Hash, Copy, Check,
+  Lightbulb, Video, UploadCloud, FileText, Crown, Hash, Copy, Check, Settings,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { api, API_URL, getToken } from '@/lib/api';
@@ -421,6 +421,9 @@ export default function Home() {
                   {planName ? `✨ ${planName} · ` : ''}{user.total_credits} credit{user.total_credits === 1 ? '' : 's'}
                 </p>
               </div>
+              <Link href="/account" title="Account settings" className="text-slate-400 hover:text-pink-600 transition-colors">
+                <Settings className="w-4 h-4" />
+              </Link>
               <button onClick={logout} title="Log out" className="text-slate-400 hover:text-pink-600 transition-colors cursor-pointer">
                 <LogOut className="w-4 h-4" />
               </button>

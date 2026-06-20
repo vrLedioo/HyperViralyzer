@@ -1,5 +1,7 @@
-"""Auth endpoints: signup, login, current user, account deletion, GDPR export."""
+"""Auth endpoints: signup, login, current user, password reset, account deletion, GDPR export."""
 import json
+import secrets
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
@@ -10,7 +12,8 @@ from auth import create_access_token, get_current_user, hash_password, verify_pa
 from config import settings
 from db import get_session
 from limiter import limiter
-from models import Analysis, User, VideoJob
+from models import Analysis, PasswordResetToken, User, VideoJob
+from services.email import send_password_reset
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -25,6 +28,15 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
@@ -33,11 +45,15 @@ class TokenResponse(BaseModel):
 class UserResponse(BaseModel):
     id: int
     email: str
-    credits: int               # purchased pack credits (never expire)
-    subscription_credits: int  # monthly plan allowance (refills, no rollover)
-    total_credits: int         # what's actually spendable right now
-    plan: str                  # "free" | "creator" | "pro" | "agency"
+    credits: int
+    subscription_credits: int
+    total_credits: int
+    plan: str
     subscription_status: str
+
+
+class MessageResponse(BaseModel):
+    message: str
 
 
 def _user_out(user: User) -> UserResponse:
@@ -60,7 +76,6 @@ def signup(request: Request, req: SignupRequest, session: Session = Depends(get_
     existing = session.exec(select(User).where(User.email == req.email)).first()
     if existing:
         raise HTTPException(status_code=409, detail="An account with this email already exists.")
-
     user = User(
         email=req.email,
         hashed_password=hash_password(req.password),
@@ -86,23 +101,85 @@ def me(user: User = Depends(get_current_user)):
     return _user_out(user)
 
 
+@router.post("/forgot-password", response_model=MessageResponse)
+@limiter.limit("5/hour")
+def forgot_password(
+    request: Request,
+    req: ForgotPasswordRequest,
+    session: Session = Depends(get_session),
+):
+    """Request a password-reset email. Always returns 200 to prevent email enumeration."""
+    user = session.exec(select(User).where(User.email == req.email)).first()
+    if user:
+        # Invalidate any previous tokens for this user.
+        old_tokens = session.exec(
+            select(PasswordResetToken).where(PasswordResetToken.user_id == user.id)
+        ).all()
+        for t in old_tokens:
+            session.delete(t)
+
+        token_str = secrets.token_urlsafe(32)
+        expires = datetime.now(timezone.utc) + timedelta(hours=1)
+        session.add(PasswordResetToken(token=token_str, user_id=user.id, expires_at=expires))
+        session.commit()
+
+        reset_url = f"{settings.frontend_url}/reset-password?token={token_str}"
+        send_password_reset(user.email, reset_url)
+
+    return MessageResponse(message="If that email is registered, a reset link has been sent.")
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+@limiter.limit("10/minute")
+def reset_password(
+    request: Request,
+    req: ResetPasswordRequest,
+    session: Session = Depends(get_session),
+):
+    """Consume a reset token and set a new password."""
+    if len(req.new_password) < 8:
+        raise HTTPException(status_code=422, detail="Password must be at least 8 characters.")
+
+    now = datetime.now(timezone.utc)
+    reset_token = session.exec(
+        select(PasswordResetToken).where(PasswordResetToken.token == req.token)
+    ).first()
+
+    if not reset_token or reset_token.used:
+        raise HTTPException(status_code=400, detail="Invalid or already-used reset link. Please request a new one.")
+    # Make expires_at timezone-aware for comparison if it isn't already.
+    expires = reset_token.expires_at
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if expires < now:
+        raise HTTPException(status_code=400, detail="This reset link has expired. Please request a new one.")
+
+    user = session.get(User, reset_token.user_id)
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid reset link.")
+
+    user.hashed_password = hash_password(req.new_password)
+    reset_token.used = True
+    session.add(user)
+    session.add(reset_token)
+    session.commit()
+    return MessageResponse(message="Password updated. You can now log in with your new password.")
+
+
 @router.delete("/account", status_code=204)
 def delete_account(
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
-    """Permanently delete the authenticated user's account and all their data (GDPR Art. 17)."""
-    # Delete in FK-safe order: VideoJobs → Analyses → User
-    jobs = session.exec(select(VideoJob).where(VideoJob.user_id == user.id)).all()
-    for j in jobs:
+    """Permanently delete the account and all associated data (GDPR Art. 17)."""
+    for j in session.exec(select(VideoJob).where(VideoJob.user_id == user.id)).all():
         session.delete(j)
     session.flush()
-
-    analyses = session.exec(select(Analysis).where(Analysis.user_id == user.id)).all()
-    for a in analyses:
+    for a in session.exec(select(Analysis).where(Analysis.user_id == user.id)).all():
         session.delete(a)
+    for t in session.exec(select(PasswordResetToken).where(PasswordResetToken.user_id == user.id)).all():
+        session.delete(t)
     session.flush()
-
     session.delete(user)
     session.commit()
     return Response(status_code=204)
@@ -113,7 +190,7 @@ def export_data(
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
-    """Export all personal data for the authenticated user (GDPR Art. 20)."""
+    """Export all personal data as JSON (GDPR Art. 20)."""
     analyses = session.exec(
         select(Analysis).where(Analysis.user_id == user.id).order_by(Analysis.created_at)
     ).all()

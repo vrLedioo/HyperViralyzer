@@ -21,6 +21,9 @@ _ADDED_COLUMNS: dict[str, dict[str, str]] = {
     "user": {
         "subscription_credits": "INTEGER NOT NULL DEFAULT 0",
         "plan": "VARCHAR NOT NULL DEFAULT 'free'",
+        # Nullable — no DEFAULT clause needed for nullable VARCHAR
+        "stripe_customer_id": "VARCHAR",
+        "subscription_id": "VARCHAR",
     },
     "analysis": {
         "platform": "VARCHAR NOT NULL DEFAULT ''",

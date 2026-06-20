@@ -43,6 +43,8 @@ services:
         sync: false            # 200 credits / €29
       - key: FRONTEND_URL
         sync: false            # your Vercel/custom domain URL, e.g. https://hyperyzer.com
+      - key: RESEND_API_KEY
+        sync: false            # from resend.com dashboard — used for password-reset emails
 
 databases:
   - name: hyperyzer-db

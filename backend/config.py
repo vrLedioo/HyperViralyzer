@@ -155,6 +155,10 @@ class Settings(BaseSettings):
             return set(self.pack_variant_map.keys())
         return set()
 
+    # --- Email (Resend) — used for password-reset emails ---
+    resend_api_key: str | None = None
+    email_from: str = "Hyperyzer <support@hyperyzer.com>"
+
     # --- URLs ---
     # Canonical frontend origin (used for Stripe success/cancel redirects).
     frontend_url: str = "http://localhost:3000"
