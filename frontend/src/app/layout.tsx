@@ -8,9 +8,63 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 import { StorageNotice } from "@/components/StorageNotice";
 
+const SITE_URL = "https://hyperyzer.com";
+const TITLE = "Hyperyzer — AI Video Scoring, Hashtags & Best Time to Post";
+const DESCRIPTION =
+  "Score your video's hook, retention & viral potential, get the best hashtags, and the best time to post — all in seconds with AI.";
+
 export const metadata: Metadata = {
-  title: "Hyperyzer — AI Video Scoring, Hashtags & Best Time to Post",
-  description: "Score your video's hook, retention & viral potential, get the best hashtags, and the best time to post — all in seconds with AI.",
+  metadataBase: new URL(SITE_URL),
+  title: TITLE,
+  description: DESCRIPTION,
+  applicationName: "Hyperyzer",
+  keywords: [
+    "Hyperyzer",
+    "AI video scoring",
+    "viral score",
+    "video hook analysis",
+    "best time to post",
+    "hashtag generator",
+    "TikTok",
+    "YouTube Shorts",
+    "Instagram Reels",
+  ],
+  robots: { index: true, follow: true },
+  openGraph: {
+    type: "website",
+    url: SITE_URL,
+    siteName: "Hyperyzer",
+    title: TITLE,
+    description: DESCRIPTION,
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
+};
+
+// Structured data so Google understands "Hyperyzer" as a brand/site entity —
+// important for a branded search to surface the official site.
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: "Hyperyzer",
+      url: SITE_URL,
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      url: SITE_URL,
+      name: "Hyperyzer",
+      description: DESCRIPTION,
+      publisher: { "@id": `${SITE_URL}/#organization` },
+    },
+  ],
 };
 
 export default function RootLayout({
@@ -21,6 +75,10 @@ export default function RootLayout({
   return (
     <html lang="en" className="antialiased selection:bg-pink-500/30 selection:text-pink-900">
       <body className="font-sans text-pink-950 bg-[#FDF2F8] min-h-screen relative overflow-x-hidden">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         {/* Apple-style Liquid/Ambient Background */}
         <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
           <div className="absolute -top-[20%] -left-[10%] w-[70vw] h-[70vw] rounded-full bg-gradient-to-br from-pink-400/30 to-orange-400/20 blur-[120px] mix-blend-multiply animate-blob"></div>
