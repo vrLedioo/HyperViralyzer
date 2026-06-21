@@ -30,6 +30,9 @@ class User(SQLModel, table=True):
     stripe_customer_id: Optional[str] = Field(default=None, index=True)
     # Provider subscription id (Paddle / Lemon Squeezy / Stripe) for cancel matching.
     subscription_id: Optional[str] = Field(default=None, index=True)
+    # New signups must confirm ownership of their email before they can log in
+    # or spend credits. Existing rows are grandfathered to True by the migration.
+    email_verified: bool = False
     created_at: datetime = Field(default_factory=_utcnow)
 
     @property
@@ -85,6 +88,16 @@ class VideoJob(SQLModel, table=True):
 
 class PasswordResetToken(SQLModel, table=True):
     """Single-use password reset tokens, valid for 1 hour."""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    token: str = Field(index=True, unique=True)
+    user_id: int = Field(foreign_key="user.id", index=True)
+    expires_at: datetime
+    used: bool = False
+    created_at: datetime = Field(default_factory=_utcnow)
+
+
+class EmailVerificationToken(SQLModel, table=True):
+    """Single-use email-verification tokens, valid for 24 hours."""
     id: Optional[int] = Field(default=None, primary_key=True)
     token: str = Field(index=True, unique=True)
     user_id: int = Field(foreign_key="user.id", index=True)

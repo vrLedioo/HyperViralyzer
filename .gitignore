@@ -21,3 +21,5 @@ frontend/.env*.local
 # Vendored third-party marketing skills (not part of the product)
 marketingskills/
 .agents/
+
+.vercel

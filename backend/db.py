@@ -24,6 +24,10 @@ _ADDED_COLUMNS: dict[str, dict[str, str]] = {
         # Nullable — no DEFAULT clause needed for nullable VARCHAR
         "stripe_customer_id": "VARCHAR",
         "subscription_id": "VARCHAR",
+        # Grandfather pre-existing accounts to verified so they aren't locked
+        # out; new signups insert email_verified=False explicitly. TRUE/FALSE
+        # literals are valid on both SQLite (>=3.23) and Postgres.
+        "email_verified": "BOOLEAN NOT NULL DEFAULT TRUE",
     },
     "analysis": {
         "platform": "VARCHAR NOT NULL DEFAULT ''",

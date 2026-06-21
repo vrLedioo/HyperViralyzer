@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Play, Mail, Lock, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
+import { api } from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,18 +14,36 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [needsVerify, setNeedsVerify] = useState(false);
+  const [resent, setResent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setNeedsVerify(false);
+    setResent(false);
     setLoading(true);
     try {
       await login(email, password);
       router.push('/app');
     } catch (err: any) {
       setError(err.message || 'Login failed.');
+      if (err?.status === 403) setNeedsVerify(true);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setResent(true);
+    try {
+      await api('/api/auth/resend-verification', {
+        method: 'POST',
+        auth: false,
+        body: JSON.stringify({ email }),
+      });
+    } catch {
+      /* generic response; ignore */
     }
   };
 
@@ -44,6 +63,15 @@ export default function LoginPage() {
         {error && (
           <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-3 rounded-lg text-red-800 text-sm font-medium">
             {error}
+            {needsVerify && (
+              <button
+                onClick={handleResend}
+                disabled={resent}
+                className="block mt-2 text-pink-600 font-bold hover:underline disabled:opacity-50 disabled:no-underline cursor-pointer"
+              >
+                {resent ? 'Verification email re-sent ✓' : 'Resend verification email'}
+              </button>
+            )}
           </div>
         )}
 

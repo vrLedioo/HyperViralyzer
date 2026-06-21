@@ -60,14 +60,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const signup = useCallback(async (email: string, password: string) => {
-    const res = await api<{ access_token: string }>('/api/auth/signup', {
+    // Signup no longer logs the user in: they must confirm their email first.
+    // The signup page shows a "check your inbox" state on success.
+    await api('/api/auth/signup', {
       method: 'POST',
       auth: false,
       body: JSON.stringify({ email, password }),
     });
-    setToken(res.access_token);
-    await refresh();
-  }, [refresh]);
+  }, []);
 
   const logout = useCallback(() => {
     clearToken();

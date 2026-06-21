@@ -67,3 +67,39 @@ def send_password_reset(to_email: str, reset_url: str) -> None:
 </html>
 """
     _send(to=to_email, subject="Reset your Hyperyzer password", html=html)
+
+
+def send_verification_email(to_email: str, verify_url: str) -> None:
+    html = f"""
+<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#FDF2F8;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 16px;">
+    <tr><td align="center">
+      <table width="480" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:20px;border:1px solid #fce7f3;padding:40px 36px;">
+        <tr><td>
+          <p style="margin:0 0 4px;font-size:22px;font-weight:900;color:#0f172a;letter-spacing:-0.5px;">Hyperyzer</p>
+          <p style="margin:0 0 28px;font-size:13px;color:#ec4899;font-weight:700;">AI Video Scoring</p>
+          <h1 style="margin:0 0 12px;font-size:24px;font-weight:900;color:#0f172a;">Confirm your email</h1>
+          <p style="margin:0 0 28px;color:#475569;font-size:15px;line-height:1.6;">
+            Welcome to Hyperyzer! Confirm your email address to activate your account and
+            start scoring your videos. This link expires in <strong>24 hours</strong>.
+          </p>
+          <a href="{verify_url}"
+             style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#ec4899,#f97316);
+                    color:#fff;font-weight:800;font-size:15px;text-decoration:none;border-radius:14px;
+                    letter-spacing:-0.2px;">
+            Confirm email &rarr;
+          </a>
+          <p style="margin:28px 0 0;color:#94a3b8;font-size:13px;line-height:1.6;">
+            If you didn&rsquo;t create a Hyperyzer account, you can safely ignore this email.<br>
+            Or paste this link directly: <a href="{verify_url}" style="color:#ec4899;word-break:break-all;">{verify_url}</a>
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
+"""
+    _send(to=to_email, subject="Confirm your Hyperyzer email", html=html)

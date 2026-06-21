@@ -12,8 +12,8 @@ from auth import create_access_token, get_current_user, hash_password, verify_pa
 from config import settings
 from db import get_session
 from limiter import limiter
-from models import Analysis, PasswordResetToken, User, VideoJob
-from services.email import send_password_reset
+from models import Analysis, EmailVerificationToken, PasswordResetToken, User, VideoJob
+from services.email import send_password_reset, send_verification_email
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -35,6 +35,14 @@ class ForgotPasswordRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str
+
+
+class VerifyEmailRequest(BaseModel):
+    token: str
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
 
 
 class TokenResponse(BaseModel):
@@ -68,7 +76,25 @@ def _user_out(user: User) -> UserResponse:
     )
 
 
-@router.post("/signup", response_model=TokenResponse)
+def _issue_verification(session: Session, user: User) -> None:
+    """Replace any outstanding verification tokens for this user with a fresh
+    one and email the confirmation link."""
+    old_tokens = session.exec(
+        select(EmailVerificationToken).where(EmailVerificationToken.user_id == user.id)
+    ).all()
+    for t in old_tokens:
+        session.delete(t)
+
+    token_str = secrets.token_urlsafe(32)
+    expires = datetime.now(timezone.utc) + timedelta(hours=24)
+    session.add(EmailVerificationToken(token=token_str, user_id=user.id, expires_at=expires))
+    session.commit()
+
+    verify_url = f"{settings.frontend_url}/verify-email?token={token_str}"
+    send_verification_email(user.email, verify_url)
+
+
+@router.post("/signup", response_model=MessageResponse)
 @limiter.limit("10/minute")
 def signup(request: Request, req: SignupRequest, session: Session = Depends(get_session)):
     if len(req.password) < 8:
@@ -80,11 +106,16 @@ def signup(request: Request, req: SignupRequest, session: Session = Depends(get_
         email=req.email,
         hashed_password=hash_password(req.password),
         credits=settings.free_credits_on_signup,
+        email_verified=False,
     )
     session.add(user)
     session.commit()
     session.refresh(user)
-    return TokenResponse(access_token=create_access_token(user.id))
+
+    _issue_verification(session, user)
+    return MessageResponse(
+        message="Account created. Check your email for a verification link to activate your account."
+    )
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -93,7 +124,64 @@ def login(request: Request, req: LoginRequest, session: Session = Depends(get_se
     user = session.exec(select(User).where(User.email == req.email)).first()
     if not user or not verify_password(req.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid email or password.")
+    if not user.email_verified:
+        raise HTTPException(
+            status_code=403,
+            detail="Please verify your email before logging in. Check your inbox (and spam) for the link.",
+        )
     return TokenResponse(access_token=create_access_token(user.id))
+
+
+@router.post("/verify-email", response_model=TokenResponse)
+@limiter.limit("10/minute")
+def verify_email(request: Request, req: VerifyEmailRequest, session: Session = Depends(get_session)):
+    """Consume a verification token, mark the account verified, and log the user in."""
+    now = datetime.now(timezone.utc)
+    vtoken = session.exec(
+        select(EmailVerificationToken).where(EmailVerificationToken.token == req.token)
+    ).first()
+
+    if not vtoken or vtoken.used:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or already-used verification link. Request a new one below.",
+        )
+    expires = vtoken.expires_at
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if expires < now:
+        raise HTTPException(
+            status_code=400,
+            detail="This verification link has expired. Request a new one below.",
+        )
+
+    user = session.get(User, vtoken.user_id)
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid verification link.")
+
+    user.email_verified = True
+    vtoken.used = True
+    session.add(user)
+    session.add(vtoken)
+    session.commit()
+    return TokenResponse(access_token=create_access_token(user.id))
+
+
+@router.post("/resend-verification", response_model=MessageResponse)
+@limiter.limit("5/hour")
+def resend_verification(
+    request: Request,
+    req: ResendVerificationRequest,
+    session: Session = Depends(get_session),
+):
+    """Re-send the verification email. Always returns 200 to avoid leaking which
+    addresses are registered/unverified."""
+    user = session.exec(select(User).where(User.email == req.email)).first()
+    if user and not user.email_verified:
+        _issue_verification(session, user)
+    return MessageResponse(
+        message="If that address needs verification, a new link has been sent."
+    )
 
 
 @router.get("/me", response_model=UserResponse)
@@ -178,6 +266,8 @@ def delete_account(
     for a in session.exec(select(Analysis).where(Analysis.user_id == user.id)).all():
         session.delete(a)
     for t in session.exec(select(PasswordResetToken).where(PasswordResetToken.user_id == user.id)).all():
+        session.delete(t)
+    for t in session.exec(select(EmailVerificationToken).where(EmailVerificationToken.user_id == user.id)).all():
         session.delete(t)
     session.flush()
     session.delete(user)

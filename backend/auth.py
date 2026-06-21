@@ -70,7 +70,14 @@ def get_optional_user(
         user_id = int(payload["sub"])
     except (jwt.PyJWTError, KeyError, ValueError):
         return None
-    return session.get(User, user_id)
+    user = session.get(User, user_id)
+    # An unverified account is treated as not-logged-in everywhere, so it can
+    # never spend credits or reach an authenticated endpoint. Tokens are only
+    # ever issued to verified users (login blocks the unverified), so this is a
+    # defense-in-depth backstop.
+    if user is None or not user.email_verified:
+        return None
+    return user
 
 
 def get_current_user(user: Optional[User] = Depends(get_optional_user)) -> User:
