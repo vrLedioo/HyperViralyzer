@@ -65,11 +65,49 @@ def _purge_expired_reset_tokens():
             session.commit()
 
 
+def _seed_test_account():
+    """If SEED_TEST_ACCOUNT="email:password" is set, create or elevate that
+    account to an active Agency plan with credits (email pre-verified) so every
+    Studio feature can be tested without going through Paddle checkout. Idempotent."""
+    import logging
+    from sqlmodel import Session, select
+    from auth import hash_password
+    from db import engine
+    from models import User
+    from plans import plan_monthly_credits
+
+    spec = settings.seed_test_account
+    if not spec or ":" not in spec:
+        return
+    email, password = spec.split(":", 1)
+    email, password = email.strip().lower(), password.strip()
+    if not email or len(password) < 8:
+        logging.getLogger(__name__).warning("SEED_TEST_ACCOUNT set but invalid (need email:password>=8 chars).")
+        return
+
+    with Session(engine) as session:
+        user = session.exec(select(User).where(User.email == email)).first()
+        if user is None:
+            user = User(email=email, hashed_password=hash_password(password))
+            session.add(user)
+        else:
+            user.hashed_password = hash_password(password)  # ensure the given creds work
+        user.email_verified = True
+        user.plan = "agency"
+        user.subscription_status = "active"
+        user.subscription_credits = max(user.subscription_credits, plan_monthly_credits("agency"))
+        user.credits = max(user.credits, 200)  # a pack-credit buffer too
+        session.add(user)
+        session.commit()
+    logging.getLogger(__name__).info("Seeded Agency test account: %s", email)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     create_db_and_tables()
     _reconcile_orphaned_jobs()
     _purge_expired_reset_tokens()
+    _seed_test_account()
     yield
 
 

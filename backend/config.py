@@ -43,6 +43,13 @@ class Settings(BaseSettings):
     transcription_provider: str = "openai"
     local_whisper_model: str = "base"  # tiny | base | small | medium | large-v3
 
+    # --- Test/admin seeding ---
+    # If set as "email:password", on startup create/elevate that account to an
+    # active Agency plan (all Studio features + credits, email pre-verified) for
+    # testing. Guarded by Render env access; remove the var when done. Format:
+    #   SEED_TEST_ACCOUNT=tester@example.com:SomeStrongPassword
+    seed_test_account: str | None = None
+
     # --- Auth (JWT) ---
     jwt_secret: str = "dev-secret-change-me"
     jwt_algorithm: str = "HS256"
