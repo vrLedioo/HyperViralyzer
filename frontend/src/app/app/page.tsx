@@ -501,7 +501,7 @@ export default function Home() {
       <main className="flex-1 flex flex-col h-full overflow-hidden max-w-[1200px] mx-auto">
         <header className="mb-6 px-2 flex items-center justify-between animate-fade-in">
           <div>
-            <h2 className="text-3xl font-extrabold tracking-tight text-slate-900">
+            <h2 className="text-3xl md:text-4xl font-black tracking-tight text-gradient">
               {mode === 'idea' ? 'Test Your Video Idea' : 'Analyze Your Video'}
             </h2>
             <p className="text-slate-600 mt-1 text-lg font-medium">
@@ -644,7 +644,7 @@ export default function Home() {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 gap-4 mb-6 relative">
+              <div className={`grid grid-cols-1 gap-4 mb-6 relative ${result ? 'stagger' : ''}`}>
                 <ScoreCard label="Hook Strength" value={result?.hook_score} color="pink" Icon={Target} />
                 <ScoreCard label="Retention Predict" value={result?.retention_score} color="emerald" Icon={TrendingUp} delay="delay-150" />
                 <ScoreCard label="Viral Potential" value={result?.viral_score} color="orange" Icon={Zap} delay="delay-300" />
@@ -730,11 +730,11 @@ function ScoreCard({ label, value, color, Icon, delay = '' }: { label: string; v
   const border = { pink: 'border-pink-200', emerald: 'border-emerald-200', orange: 'border-orange-200' }[color];
   const bar = { pink: 'bg-pink-500', emerald: 'bg-emerald-500', orange: 'bg-orange-500' }[color];
   return (
-    <div className={`p-4 rounded-2xl border transition-all duration-500 relative overflow-hidden ${has ? `bg-white ${border} shadow-sm` : 'bg-slate-100/50 border-slate-200/60'}`}>
-      <div className="absolute top-0 right-0 p-3 opacity-[0.03]"><Icon className="w-16 h-16" /></div>
+    <div className={`p-4 rounded-2xl border transition-all duration-500 relative overflow-hidden ${has ? `bg-white ${border} shadow-sm card-hover` : 'bg-slate-100/50 border-slate-200/60'}`}>
+      <div className={`absolute top-0 right-0 p-3 transition-opacity duration-500 ${has ? 'opacity-[0.06]' : 'opacity-[0.03]'}`}><Icon className="w-16 h-16" /></div>
       <p className="text-slate-500 font-bold text-xs uppercase tracking-wider mb-1">{label}</p>
       <div className="flex items-baseline gap-1">
-        <span className={`text-3xl font-black transition-colors ${has ? 'text-slate-900' : 'text-slate-300'}`}>{has ? value : '--'}</span>
+        <span className={`text-4xl font-black transition-colors ${has ? 'text-slate-900' : 'text-slate-300'}`}>{has ? value : '--'}</span>
         <span className={`font-bold transition-colors ${has ? 'text-slate-400' : 'text-slate-300'}`}>/100</span>
       </div>
       <div className="mt-3 w-full bg-slate-200/70 rounded-full h-1.5 overflow-hidden">

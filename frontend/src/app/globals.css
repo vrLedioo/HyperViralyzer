@@ -52,6 +52,14 @@
     @apply opacity-100;
   }
 
+  /* Visual flair — brand gradient text + a lift-on-hover for cards. */
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary-500 to-accent-500 bg-clip-text text-transparent;
+  }
+  .card-hover {
+    @apply transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(236,72,153,0.14)];
+  }
+
   /* Tasteful entrance motion — the app should feel alive, not static. */
   .animate-fade-in {
     animation: fadeIn 0.4s ease-out both;

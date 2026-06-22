@@ -212,7 +212,7 @@ export default function StudioPage() {
           <div key={tool} className="glass-panel rounded-3xl p-6 md:p-8 animate-fade-in">
             <div className="flex items-start justify-between mb-5">
               <div>
-                <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2"><current.icon className="w-6 h-6 text-pink-500" /> {current.label}</h1>
+                <h1 className="text-2xl md:text-3xl font-black tracking-tight flex items-center gap-2"><current.icon className="w-6 h-6 text-pink-500" /> <span className="text-gradient">{current.label}</span></h1>
                 <p className="text-slate-500 font-medium mt-1">{current.blurb}</p>
               </div>
             </div>
