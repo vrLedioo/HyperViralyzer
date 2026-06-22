@@ -23,6 +23,7 @@ class AnalyzeRequest(BaseModel):
     script: str
     platform: Optional[str] = None      # target platform for hashtags/timing
     audience: Optional[str] = None      # target audience (region / who)
+    language: Optional[str] = None      # output language ("" = match input)
     user_api_key: Optional[str] = None  # BYOK
     pay_token: Optional[str] = None     # single-use pay-per-use token
 
@@ -114,7 +115,7 @@ def analyze_idea(
     try:
         result = score_content(
             req.title, req.script,
-            platform=req.platform, audience=req.audience,
+            platform=req.platform, audience=req.audience, language=req.language,
             byok_key=grant.byok_key,
         )
     except ScoringError as e:

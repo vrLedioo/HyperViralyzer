@@ -84,7 +84,7 @@ def _apply_consumption_bg(session: Session, method: str, payer_user_id: Optional
 def _process_video(job_id: int, file_path: str, title: str, byok_key: Optional[str],
                    method: str, attribution_user_id: Optional[int], payer_user_id: Optional[int],
                    session_id: Optional[str], cost: int,
-                   platform: str = "", audience: str = ""):
+                   platform: str = "", audience: str = "", language: str = ""):
     """Runs in the background. Owns its own DB session."""
     with Session(engine) as session:
         job = session.get(VideoJob, job_id)
@@ -102,7 +102,8 @@ def _process_video(job_id: int, file_path: str, title: str, byok_key: Optional[s
             session.commit()
 
             result = score_content(
-                title, transcript, platform=platform, audience=audience, byok_key=byok_key,
+                title, transcript, platform=platform, audience=audience,
+                language=language, byok_key=byok_key,
             )
 
             analysis = Analysis(
@@ -150,6 +151,7 @@ async def analyze_video(
     file: UploadFile = File(...),
     platform: Optional[str] = Form(None),
     audience: Optional[str] = Form(None),
+    language: Optional[str] = Form(None),
     user_api_key: Optional[str] = Form(None),
     pay_token: Optional[str] = Form(None),
     user: Optional[User] = Depends(get_optional_user),
@@ -234,7 +236,7 @@ async def analyze_video(
     background.add_task(
         _process_video, job.id, file_path, title, grant.byok_key,
         grant.method, attribution_user_id, payer_user_id, grant.session_id, grant.credits_cost,
-        platform or "", audience or "",
+        platform or "", audience or "", language or "",
     )
     return JobResponse(job_id=job.token, status=job.status)
 

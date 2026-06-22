@@ -38,6 +38,7 @@ class ScriptRequest(BaseModel):
     platform: Optional[str] = None
     audience: Optional[str] = None
     tone: Optional[str] = None
+    language: Optional[str] = None       # output language ("" = match input)
     client_id: Optional[int] = None     # Agency: generate for a brand profile
     user_api_key: Optional[str] = None  # BYOK
 
@@ -49,6 +50,7 @@ class AdScriptRequest(BaseModel):
     platform: Optional[str] = None
     audience: Optional[str] = None
     tone: Optional[str] = None
+    language: Optional[str] = None
     client_id: Optional[int] = None
     user_api_key: Optional[str] = None
 
@@ -58,6 +60,7 @@ class HooksRequest(BaseModel):
     platform: Optional[str] = None
     audience: Optional[str] = None
     tone: Optional[str] = None
+    language: Optional[str] = None
     client_id: Optional[int] = None
     user_api_key: Optional[str] = None
 
@@ -67,6 +70,7 @@ class OptimizeRequest(BaseModel):
     script: str
     platform: Optional[str] = None
     audience: Optional[str] = None
+    language: Optional[str] = None
     user_api_key: Optional[str] = None
 
 
@@ -76,6 +80,7 @@ class CalendarRequest(BaseModel):
     platform: Optional[str] = None
     audience: Optional[str] = None
     tone: Optional[str] = None
+    language: Optional[str] = None
     client_id: Optional[int] = None
     user_api_key: Optional[str] = None
 
@@ -89,6 +94,7 @@ class BulkRequest(BaseModel):
     items: list[BulkItem]
     platform: Optional[str] = None
     audience: Optional[str] = None
+    language: Optional[str] = None
     user_api_key: Optional[str] = None
 
 
@@ -195,7 +201,7 @@ def studio_script(
     grant = _gate_payment(user, req.user_api_key, settings.script_credit_cost, session)
     try:
         output = write_script(req.idea, platform=req.platform, audience=audience,
-                              tone=tone, byok_key=grant.byok_key)
+                              tone=tone, language=req.language, byok_key=grant.byok_key)
     except (StudioError, ScoringError) as e:
         raise _generation_failed(grant, e)
     apply_consumption(grant, session)
@@ -218,7 +224,7 @@ def studio_ad_script(
     try:
         output = write_ad_script(req.product, benefit=req.benefit, offer=req.offer,
                                  platform=req.platform, audience=audience, tone=tone,
-                                 byok_key=grant.byok_key)
+                                 language=req.language, byok_key=grant.byok_key)
     except (StudioError, ScoringError) as e:
         raise _generation_failed(grant, e)
     apply_consumption(grant, session)
@@ -240,7 +246,7 @@ def studio_hooks(
     grant = _gate_payment(user, req.user_api_key, settings.hook_credit_cost, session)
     try:
         output = generate_hooks(req.topic, platform=req.platform, audience=audience,
-                                tone=tone, byok_key=grant.byok_key)
+                                tone=tone, language=req.language, byok_key=grant.byok_key)
     except (StudioError, ScoringError) as e:
         raise _generation_failed(grant, e)
     apply_consumption(grant, session)
@@ -260,7 +266,7 @@ def studio_optimize(
     grant = _gate_payment(user, req.user_api_key, settings.optimize_credit_cost, session)
     try:
         output = optimize_script(req.title, req.script, platform=req.platform,
-                                 audience=req.audience, byok_key=grant.byok_key)
+                                 audience=req.audience, language=req.language, byok_key=grant.byok_key)
     except (StudioError, ScoringError) as e:
         raise _generation_failed(grant, e)
     # Charged once for the whole optimize (rewrite + two score calls).
@@ -285,7 +291,8 @@ def studio_calendar(
     grant = _gate_payment(user, req.user_api_key, settings.calendar_credit_cost, session)
     try:
         output = generate_calendar(req.niche, days=req.days or 7, platform=req.platform,
-                                   audience=audience, tone=tone, byok_key=grant.byok_key)
+                                   audience=audience, tone=tone, language=req.language,
+                                   byok_key=grant.byok_key)
     except (StudioError, ScoringError) as e:
         raise _generation_failed(grant, e)
     apply_consumption(grant, session)
@@ -317,7 +324,7 @@ def studio_bulk(
     for it in items:
         try:
             r = score_content(it.title, it.script, platform=req.platform, audience=req.audience,
-                              byok_key=grant.byok_key)
+                              language=req.language, byok_key=grant.byok_key)
             results.append({
                 "title": it.title, "ok": True,
                 "hook_score": r.hook_score, "retention_score": r.retention_score,

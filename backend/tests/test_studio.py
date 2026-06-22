@@ -62,6 +62,29 @@ def test_optimize_charged_once(client, make_user, auth, monkeypatch):
         assert s.get(User, uid).subscription_credits == 800 - 4  # optimize cost, charged once
 
 
+def test_language_is_threaded_to_generator(client, make_user, auth, monkeypatch):
+    captured = {}
+
+    def fake_script(idea, **kw):
+        captured.update(kw)
+        return dict(DUMMY_SCRIPT)
+
+    monkeypatch.setattr(sr, "write_script", fake_script)
+    uid = _pro(make_user)
+    r = client.post("/api/studio/script", json={"idea": "x", "language": "Albanian"}, headers=auth(uid))
+    assert r.status_code == 200
+    assert captured.get("language") == "Albanian"
+
+
+def test_language_directive_shapes():
+    from services.scoring import _language_directive
+    from services.studio import _lang_directive
+    assert "Albanian" in _language_directive("Albanian")
+    assert "SAME" in _language_directive("")           # auto -> match input
+    assert "do NOT translate the keys" in _lang_directive("Spanish")
+    assert "Spanish" in _lang_directive("Spanish")
+
+
 def test_insufficient_credits_402(client, make_user, auth, monkeypatch):
     monkeypatch.setattr(sr, "write_script", lambda *a, **k: dict(DUMMY_SCRIPT))
     uid = make_user("broke@t.com", plan="pro", subscription_status="active", subscription_credits=1)

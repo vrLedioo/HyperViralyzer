@@ -79,6 +79,21 @@ def _targeting(platform: Optional[str], audience: Optional[str], tone: Optional[
     )
 
 
+def _lang_directive(language: Optional[str]) -> str:
+    """Force the output language for human-readable VALUES without translating
+    the JSON keys (which would break parsing)."""
+    lang = (language or "").strip()
+    if lang:
+        return (
+            f"\n\nIMPORTANT: Write ALL human-readable text values in {lang}. Keep every JSON key "
+            "exactly as specified (in English); do NOT translate the keys."
+        )
+    return (
+        "\n\nIMPORTANT: Write ALL human-readable text values in the SAME language as the user's "
+        "input above. Keep every JSON key exactly as specified (in English); do NOT translate the keys."
+    )
+
+
 # --------------------------------------------------------------------------- #
 # 1. Script Writer — idea/topic -> full short-form script
 # --------------------------------------------------------------------------- #
@@ -105,9 +120,9 @@ Rules:
 """
 
 
-def write_script(idea: str, *, platform=None, audience=None, tone=None,
+def write_script(idea: str, *, platform=None, audience=None, tone=None, language=None,
                  byok_key: Optional[str] = None) -> dict:
-    user = _targeting(platform, audience, tone) + f"\nVIDEO IDEA:\n{idea}"
+    user = _targeting(platform, audience, tone) + f"\nVIDEO IDEA:\n{idea}" + _lang_directive(language)
     data = _chat_json(_SCRIPT_SYSTEM, user, byok_key, prefer_key="hook")
     beats = []
     raw = data.get("beats")
@@ -154,13 +169,13 @@ Rules:
 
 
 def write_ad_script(product: str, *, benefit=None, offer=None, platform=None, audience=None,
-                    tone=None, byok_key: Optional[str] = None) -> dict:
+                    tone=None, language=None, byok_key: Optional[str] = None) -> dict:
     details = (
         f"PRODUCT: {_s(product, 600)}\n"
         f"KEY BENEFIT: {(benefit or '').strip() or 'infer the strongest benefit'}\n"
         f"OFFER/PRICE: {(offer or '').strip() or 'none specified'}\n"
     )
-    user = _targeting(platform, audience, tone) + "\n" + details
+    user = _targeting(platform, audience, tone) + "\n" + details + _lang_directive(language)
     data = _chat_json(_AD_SYSTEM, user, byok_key, prefer_key="hook")
     beats = []
     raw = data.get("beats")
@@ -200,9 +215,9 @@ Rules:
 """
 
 
-def generate_hooks(topic: str, *, platform=None, audience=None, tone=None,
+def generate_hooks(topic: str, *, platform=None, audience=None, tone=None, language=None,
                    byok_key: Optional[str] = None) -> dict:
-    user = _targeting(platform, audience, tone) + f"\nTOPIC:\n{topic}"
+    user = _targeting(platform, audience, tone) + f"\nTOPIC:\n{topic}" + _lang_directive(language)
     data = _chat_json(_HOOKS_SYSTEM, user, byok_key, prefer_key="hooks")
     hooks = []
     raw = data.get("hooks")
@@ -239,20 +254,23 @@ Rules:
 """
 
 
-def optimize_script(title: str, script: str, *, platform=None, audience=None,
+def optimize_script(title: str, script: str, *, platform=None, audience=None, language=None,
                     byok_key: Optional[str] = None) -> dict:
     """Score the original, rewrite it, then re-score the rewrite. Before/after
     scores use the same scorer (score_content) so the lift is comparable."""
-    before: ScoreResult = score_content(title, script, platform=platform, audience=audience, byok_key=byok_key)
+    before: ScoreResult = score_content(title, script, platform=platform, audience=audience,
+                                         language=language, byok_key=byok_key)
 
-    user = _targeting(platform, audience, None) + f"\nTITLE: {title}\n\nSCRIPT TO IMPROVE:\n{script}"
+    user = (_targeting(platform, audience, None) + f"\nTITLE: {title}\n\nSCRIPT TO IMPROVE:\n{script}"
+            + _lang_directive(language))
     data = _chat_json(_OPTIMIZE_SYSTEM, user, byok_key, prefer_key="rewritten_script")
     rewritten_title = _s(data.get("rewritten_title"), 200) or title
     rewritten_script = _s(data.get("rewritten_script"), 4000) or script
     changes = _str_list(data.get("changes"), 8, 300)
 
     after: ScoreResult = score_content(
-        rewritten_title, rewritten_script, platform=platform, audience=audience, byok_key=byok_key
+        rewritten_title, rewritten_script, platform=platform, audience=audience,
+        language=language, byok_key=byok_key,
     )
 
     def _scores(r: ScoreResult) -> dict:
@@ -290,9 +308,10 @@ Rules:
 
 
 def generate_calendar(niche: str, *, days: int = 7, platform=None, audience=None,
-                      tone=None, byok_key: Optional[str] = None) -> dict:
+                      tone=None, language=None, byok_key: Optional[str] = None) -> dict:
     days = max(1, min(int(days or 7), 30))
-    user = _targeting(platform, audience, tone) + f"\nNICHE: {niche}\nNUMBER OF POSTS: {days}"
+    user = (_targeting(platform, audience, tone) + f"\nNICHE: {niche}\nNUMBER OF POSTS: {days}"
+            + _lang_directive(language))
     data = _chat_json(_CALENDAR_SYSTEM, user, byok_key, prefer_key="posts")
     posts = []
     raw = data.get("posts")

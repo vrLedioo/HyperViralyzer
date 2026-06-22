@@ -137,12 +137,29 @@ def _parse(content: str) -> dict:
         raise ScoringError(str(e)) from e
 
 
+def _language_directive(language: Optional[str]) -> str:
+    """Instruct the model which language to write VALUES in, without ever
+    translating the JSON keys (that would break parsing)."""
+    lang = (language or "").strip()
+    if lang:
+        return (
+            f"\n\nIMPORTANT: Write the feedback, the hashtags, and all best_times text in {lang}. "
+            "Keep every JSON key exactly as written above (in English); do NOT translate the keys."
+        )
+    return (
+        "\n\nIMPORTANT: Write the feedback, the hashtags, and all best_times text in the SAME "
+        "language as the TITLE/SCRIPT above. Keep every JSON key exactly as written above (in "
+        "English); do NOT translate the keys."
+    )
+
+
 def score_content(
     title: str,
     script: str,
     *,
     platform: Optional[str] = None,
     audience: Optional[str] = None,
+    language: Optional[str] = None,
     byok_key: Optional[str] = None,
 ) -> ScoreResult:
     """Generate a full report for a title + script/transcript.
@@ -158,6 +175,7 @@ def score_content(
         f"AUDIENCE: {audience_line}\n\n"
         f"TITLE: {title}\n\n"
         f"HOOK/SCRIPT:\n{script}"
+        f"{_language_directive(language)}"
     )
 
     try:

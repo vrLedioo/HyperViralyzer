@@ -17,6 +17,34 @@ const PLATFORMS = [
   { value: 'YouTube (long-form)', label: 'YouTube (long-form)' },
 ];
 
+const LANGUAGES = [
+  { value: '', label: 'Match input' },
+  { value: 'English', label: 'English' },
+  { value: 'Albanian', label: 'Shqip' },
+  { value: 'Spanish', label: 'Español' },
+  { value: 'Portuguese', label: 'Português' },
+  { value: 'French', label: 'Français' },
+  { value: 'German', label: 'Deutsch' },
+  { value: 'Italian', label: 'Italiano' },
+  { value: 'Turkish', label: 'Türkçe' },
+  { value: 'Arabic', label: 'العربية' },
+  { value: 'Hindi', label: 'हिन्दी' },
+  { value: 'Indonesian', label: 'Bahasa Indonesia' },
+];
+
+// Per-tool accent — gives the rail + header colour variety instead of one
+// monotone gradient everywhere. Class strings are literal so Tailwind keeps them.
+const ACCENTS: Record<string, { text: string; bg: string }> = {
+  script: { text: 'text-pink-600', bg: 'bg-pink-100' },
+  ad_script: { text: 'text-orange-600', bg: 'bg-orange-100' },
+  hooks: { text: 'text-violet-600', bg: 'bg-violet-100' },
+  optimize: { text: 'text-emerald-600', bg: 'bg-emerald-100' },
+  calendar: { text: 'text-sky-600', bg: 'bg-sky-100' },
+  bulk: { text: 'text-amber-600', bg: 'bg-amber-100' },
+  clients: { text: 'text-teal-600', bg: 'bg-teal-100' },
+  teams: { text: 'text-indigo-600', bg: 'bg-indigo-100' },
+};
+
 interface Tool {
   key: string;
   feature: string;
@@ -40,7 +68,7 @@ const TOOLS: Tool[] = [
 type FormState = Record<string, string>;
 const EMPTY_FORM: FormState = {
   idea: '', product: '', benefit: '', offer: '', topic: '', title: '', script: '',
-  niche: '', days: '7', platform: '', audience: '', tone: '', clientId: '', bulkText: '',
+  niche: '', days: '7', platform: '', audience: '', tone: '', language: '', clientId: '', bulkText: '',
 };
 
 interface Client { id: number; name: string; audience: string; niche: string; tone: string }
@@ -62,6 +90,7 @@ export default function StudioPage() {
   const features = user?.studio_features || [];
   const unlocked = (f: string) => features.includes(f);
   const current = TOOLS.find((t) => t.key === tool)!;
+  const accent = ACCENTS[tool] ?? ACCENTS.script;
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   useEffect(() => {
@@ -87,35 +116,36 @@ export default function StudioPage() {
   async function run() {
     setBusy(true); setError(''); setResult(null);
     const clientId = form.clientId ? Number(form.clientId) : undefined;
+    const language = form.language || undefined;
     try {
       let res: any;
       if (tool === 'script') {
         res = await api('/api/studio/script', { method: 'POST', body: JSON.stringify({
           idea: form.idea, platform: form.platform || undefined, audience: form.audience || undefined,
-          tone: form.tone || undefined, client_id: clientId }) });
+          tone: form.tone || undefined, language, client_id: clientId }) });
       } else if (tool === 'ad_script') {
         res = await api('/api/studio/ad-script', { method: 'POST', body: JSON.stringify({
           product: form.product, benefit: form.benefit || undefined, offer: form.offer || undefined,
           platform: form.platform || undefined, audience: form.audience || undefined,
-          tone: form.tone || undefined, client_id: clientId }) });
+          tone: form.tone || undefined, language, client_id: clientId }) });
       } else if (tool === 'hooks') {
         res = await api('/api/studio/hooks', { method: 'POST', body: JSON.stringify({
           topic: form.topic, platform: form.platform || undefined,
-          audience: form.audience || undefined, client_id: clientId }) });
+          audience: form.audience || undefined, language, client_id: clientId }) });
       } else if (tool === 'optimize') {
         res = await api('/api/studio/optimize', { method: 'POST', body: JSON.stringify({
           title: form.title, script: form.script, platform: form.platform || undefined,
-          audience: form.audience || undefined }) });
+          audience: form.audience || undefined, language }) });
       } else if (tool === 'calendar') {
         res = await api('/api/studio/calendar', { method: 'POST', body: JSON.stringify({
           niche: form.niche, days: Number(form.days) || 7, platform: form.platform || undefined,
-          audience: form.audience || undefined, client_id: clientId }) });
+          audience: form.audience || undefined, language, client_id: clientId }) });
       } else if (tool === 'bulk') {
         const items = form.bulkText.split('\n').map((l) => l.trim()).filter(Boolean)
           .map((line) => ({ title: line, script: line }));
         if (!items.length) throw new Error('Add at least one idea (one per line).');
         res = await api('/api/studio/bulk', { method: 'POST', body: JSON.stringify({
-          items, platform: form.platform || undefined, audience: form.audience || undefined }) });
+          items, platform: form.platform || undefined, audience: form.audience || undefined, language }) });
       }
       setResult(res?.output ?? res);
       await refresh();
@@ -193,10 +223,13 @@ export default function StudioPage() {
             const ok = unlocked(t.feature);
             const active = t.key === tool;
             const Icon = t.icon;
+            const tAccent = ACCENTS[t.key] ?? ACCENTS.script;
             return (
               <button key={t.key} onClick={() => switchTool(t.key)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-left transition-all duration-300 cursor-pointer border ${active ? 'bg-white/70 backdrop-blur-xl shadow-[0_8px_24px_rgba(236,72,153,0.10)] border-primary-300 scale-[1.01]' : 'bg-white/40 border-white/40 hover:bg-white/70 hover:border-white/60'}`}>
-                <Icon className={`w-5 h-5 shrink-0 transition-colors ${active ? 'text-primary-500' : 'text-slate-400'}`} />
+                className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left transition-all duration-200 cursor-pointer ${active ? 'bg-white shadow-[0_6px_20px_rgba(15,23,42,0.07)]' : 'hover:bg-white/60'}`}>
+                <span className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors ${active ? tAccent.bg : 'bg-white/0 group-hover:bg-white/70'}`}>
+                  <Icon className={`w-[18px] h-[18px] shrink-0 transition-colors ${active ? tAccent.text : 'text-slate-400 group-hover:text-slate-600'}`} />
+                </span>
                 <span className="flex-1 min-w-0">
                   <span className="block font-bold text-sm text-slate-800">{t.label}</span>
                   <span className="block text-[11px] text-slate-400 font-semibold">{t.tier}{costs[t.key] ? ` · ${costs[t.key]} cr` : ''}</span>
@@ -210,10 +243,13 @@ export default function StudioPage() {
         {/* Main panel */}
         <main className="flex-1 min-w-0">
           <div key={tool} className="glass-panel rounded-3xl p-6 md:p-8 animate-fade-in">
-            <div className="flex items-start justify-between mb-5">
+            <div className="flex items-center gap-3.5 mb-6">
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${accent.bg}`}>
+                <current.icon className={`w-6 h-6 ${accent.text}`} />
+              </div>
               <div>
-                <h1 className="text-2xl md:text-3xl font-black tracking-tight flex items-center gap-2"><current.icon className="w-6 h-6 text-pink-500" /> <span className="text-gradient">{current.label}</span></h1>
-                <p className="text-slate-500 font-medium mt-1">{current.blurb}</p>
+                <h1 className="text-xl md:text-2xl font-bold tracking-tight text-slate-900">{current.label}</h1>
+                <p className="text-slate-500 font-medium text-sm">{current.blurb}</p>
               </div>
             </div>
 
@@ -288,6 +324,11 @@ function Targeting({ form, set, withTone, clients, canClient }: any) {
       <Field label="Audience (optional)">
         <input value={form.audience} onChange={(e) => set('audience', e.target.value)} placeholder="e.g. Gen Z gamers, US" className={inputCls} />
       </Field>
+      <Field label="Output language">
+        <select value={form.language} onChange={(e) => set('language', e.target.value)} className={inputCls + ' cursor-pointer'}>
+          {LANGUAGES.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
+        </select>
+      </Field>
       {withTone && (
         <Field label="Tone (optional)">
           <input value={form.tone} onChange={(e) => set('tone', e.target.value)} placeholder="e.g. punchy, expert" className={inputCls} />
@@ -321,8 +362,13 @@ function Pill({ children }: { children: any }) {
 
 function ResultView({ kind, data, canPrint }: { kind: string; data: any; canPrint: boolean }) {
   return (
-    <div className="mt-6 pt-6 border-t border-slate-200/60 animate-fade-in-up">
-      <div className="flex items-center justify-between mb-4">
+    <div className="print-area mt-6 pt-6 border-t border-slate-200/60 animate-fade-in-up">
+      {/* Only visible in the printed/exported PDF — a clean branded header. */}
+      <div className="hidden print:block mb-5 pb-3 border-b border-slate-200">
+        <p className="text-xl font-bold text-slate-900">Hyperyzer</p>
+        <p className="text-xs text-slate-500 mt-0.5">Generated with Hyperyzer Studio</p>
+      </div>
+      <div className="flex items-center justify-between mb-4 no-print">
         <h3 className="text-lg font-extrabold flex items-center gap-2"><Sparkles className="w-5 h-5 text-pink-500" /> Result</h3>
         {canPrint && (
           <button onClick={() => window.print()} className="flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg cursor-pointer">

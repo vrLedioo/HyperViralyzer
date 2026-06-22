@@ -36,6 +36,21 @@ const PLATFORMS = [
   { value: 'YouTube (long-form)', label: 'YouTube (long-form)' },
 ];
 
+const LANGUAGES = [
+  { value: '', label: 'Match input' },
+  { value: 'English', label: 'English' },
+  { value: 'Albanian', label: 'Shqip' },
+  { value: 'Spanish', label: 'Español' },
+  { value: 'Portuguese', label: 'Português' },
+  { value: 'French', label: 'Français' },
+  { value: 'German', label: 'Deutsch' },
+  { value: 'Italian', label: 'Italiano' },
+  { value: 'Turkish', label: 'Türkçe' },
+  { value: 'Arabic', label: 'العربية' },
+  { value: 'Hindi', label: 'हिन्दी' },
+  { value: 'Indonesian', label: 'Bahasa Indonesia' },
+];
+
 const PAY_TOKEN_KEY = 'va_pay_token';
 
 interface Hashtags { primary: string[]; niche: string[]; broad: string[] }
@@ -111,6 +126,7 @@ export default function Home() {
   const [script, setScript] = useState('');
   const [platform, setPlatform] = useState('');
   const [audience, setAudience] = useState('');
+  const [language, setLanguage] = useState('');
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [userApiKey, setUserApiKey] = useState('');
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
@@ -216,6 +232,7 @@ export default function Home() {
           title, script,
           platform: platform || undefined,
           audience: audience || undefined,
+          language: language || undefined,
           user_api_key: userApiKey || undefined,
           pay_token: consumePayTokenIfAny(),
         }),
@@ -243,6 +260,7 @@ export default function Home() {
       form.append('file', videoFile);
       if (platform) form.append('platform', platform);
       if (audience) form.append('audience', audience);
+      if (language) form.append('language', language);
       if (userApiKey) form.append('user_api_key', userApiKey);
       const payTok = consumePayTokenIfAny();
       if (payTok) form.append('pay_token', payTok);
@@ -521,7 +539,7 @@ export default function Home() {
               )}
 
               {/* Targeting (shared by both modes) */}
-              <div className="mb-5 grid sm:grid-cols-2 gap-3">
+              <div className="mb-5 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <div>
                   <label htmlFor="platform" className="block text-sm font-bold text-slate-800 mb-2">Platform</label>
                   <select id="platform" value={platform} onChange={(e) => setPlatform(e.target.value)}
@@ -536,6 +554,13 @@ export default function Home() {
                   <input id="audience" type="text" value={audience} onChange={(e) => setAudience(e.target.value)}
                     placeholder="e.g. Gen Z gamers, US"
                     className="w-full px-4 py-2.5 rounded-xl bg-slate-50/50 border-2 border-slate-200 focus:border-pink-500 focus:bg-white text-slate-900 placeholder-slate-400 font-semibold transition-all outline-none" />
+                </div>
+                <div>
+                  <label htmlFor="language" className="block text-sm font-bold text-slate-800 mb-2">Output language</label>
+                  <select id="language" value={language} onChange={(e) => setLanguage(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-50/50 border-2 border-slate-200 focus:border-pink-500 focus:bg-white text-slate-900 font-semibold transition-all outline-none cursor-pointer">
+                    {LANGUAGES.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
+                  </select>
                 </div>
               </div>
 
