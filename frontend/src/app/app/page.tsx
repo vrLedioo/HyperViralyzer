@@ -499,7 +499,7 @@ export default function Home() {
 
       {/* Main */}
       <main className="flex-1 flex flex-col h-full overflow-hidden max-w-[1200px] mx-auto">
-        <header className="mb-6 px-2 flex items-center justify-between">
+        <header className="mb-6 px-2 flex items-center justify-between animate-fade-in">
           <div>
             <h2 className="text-3xl font-extrabold tracking-tight text-slate-900">
               {mode === 'idea' ? 'Test Your Video Idea' : 'Analyze Your Video'}
@@ -512,7 +512,7 @@ export default function Home() {
           </div>
         </header>
 
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 flex-1 min-h-0">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 flex-1 min-h-0 animate-fade-in-up">
           {/* Input */}
           <div className="flex-[1.1] min-h-0 flex flex-col relative max-w-2xl">
             <div className="flex-1 bg-white rounded-[24px] p-6 md:p-8 flex flex-col border border-black/5 shadow-xl overflow-y-auto custom-scrollbar">

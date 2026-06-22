@@ -51,6 +51,43 @@
   .glass-button:hover::after {
     @apply opacity-100;
   }
+
+  /* Tasteful entrance motion — the app should feel alive, not static. */
+  .animate-fade-in {
+    animation: fadeIn 0.4s ease-out both;
+  }
+  .animate-fade-in-up {
+    animation: fadeInUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .animate-rise {
+    animation: fadeInUp 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  /* Stagger children: add to a container; children fade up in sequence. */
+  .stagger > * {
+    animation: fadeInUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .stagger > *:nth-child(2) { animation-delay: 0.05s; }
+  .stagger > *:nth-child(3) { animation-delay: 0.1s; }
+  .stagger > *:nth-child(4) { animation-delay: 0.15s; }
+  .stagger > *:nth-child(5) { animation-delay: 0.2s; }
+  .stagger > *:nth-child(6) { animation-delay: 0.25s; }
+  .stagger > *:nth-child(n+7) { animation-delay: 0.3s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-fade-in, .animate-fade-in-up, .animate-rise, .stagger > * {
+      animation: none;
+    }
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes blob {

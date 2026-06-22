@@ -188,15 +188,15 @@ export default function StudioPage() {
 
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Tool nav */}
-        <aside className="lg:w-64 shrink-0 space-y-1.5">
+        <aside className="lg:w-64 shrink-0 space-y-1.5 lg:sticky lg:top-6 self-start stagger">
           {TOOLS.map((t) => {
             const ok = unlocked(t.feature);
             const active = t.key === tool;
             const Icon = t.icon;
             return (
               <button key={t.key} onClick={() => switchTool(t.key)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-left transition-all cursor-pointer border ${active ? 'bg-white shadow-sm border-pink-200' : 'bg-white/50 border-transparent hover:bg-white/80'}`}>
-                <Icon className={`w-5 h-5 shrink-0 ${active ? 'text-pink-500' : 'text-slate-400'}`} />
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-left transition-all duration-300 cursor-pointer border ${active ? 'bg-white/70 backdrop-blur-xl shadow-[0_8px_24px_rgba(236,72,153,0.10)] border-primary-300 scale-[1.01]' : 'bg-white/40 border-white/40 hover:bg-white/70 hover:border-white/60'}`}>
+                <Icon className={`w-5 h-5 shrink-0 transition-colors ${active ? 'text-primary-500' : 'text-slate-400'}`} />
                 <span className="flex-1 min-w-0">
                   <span className="block font-bold text-sm text-slate-800">{t.label}</span>
                   <span className="block text-[11px] text-slate-400 font-semibold">{t.tier}{costs[t.key] ? ` · ${costs[t.key]} cr` : ''}</span>
@@ -209,7 +209,7 @@ export default function StudioPage() {
 
         {/* Main panel */}
         <main className="flex-1 min-w-0">
-          <div className="bg-white rounded-3xl border border-black/5 shadow-xl p-6 md:p-8">
+          <div key={tool} className="glass-panel rounded-3xl p-6 md:p-8 animate-fade-in">
             <div className="flex items-start justify-between mb-5">
               <div>
                 <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2"><current.icon className="w-6 h-6 text-pink-500" /> {current.label}</h1>
@@ -236,7 +236,7 @@ export default function StudioPage() {
                   <>
                     <ToolForm tool={tool} form={form} set={set} clients={clients} canClient={unlocked('clients')} />
                     <button onClick={run} disabled={busy}
-                      className="mt-5 w-full bg-gradient-to-r from-pink-500 to-orange-500 text-white font-bold py-3 rounded-xl shadow-md hover:scale-[1.01] active:scale-[0.98] transition-all disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer">
+                      className="glass-button mt-5 w-full bg-gradient-to-r from-pink-500 to-orange-500 text-white font-bold py-3 rounded-xl disabled:opacity-60 disabled:hover:scale-100 flex items-center justify-center gap-2 cursor-pointer">
                       {busy ? <><Loader2 className="w-5 h-5 animate-spin" /> Generating…</> : <><Sparkles className="w-5 h-5" /> Generate{costs[tool] ? ` · ${costs[tool]} credits` : ''}</>}
                     </button>
                     {result && <ResultView kind={tool} data={result} canPrint={unlocked('whitelabel_pdf')} />}
@@ -275,7 +275,7 @@ function Field({ label, children }: { label: string; children: any }) {
   );
 }
 
-const inputCls = 'w-full px-3.5 py-2.5 rounded-xl bg-slate-50/60 border-2 border-slate-200 focus:border-pink-500 focus:bg-white outline-none font-semibold text-slate-900 transition-all';
+const inputCls = 'w-full px-3.5 py-2.5 rounded-xl glass-input outline-none font-semibold text-slate-900';
 
 function Targeting({ form, set, withTone, clients, canClient }: any) {
   return (
@@ -321,7 +321,7 @@ function Pill({ children }: { children: any }) {
 
 function ResultView({ kind, data, canPrint }: { kind: string; data: any; canPrint: boolean }) {
   return (
-    <div className="mt-6 pt-6 border-t border-slate-100">
+    <div className="mt-6 pt-6 border-t border-slate-200/60 animate-fade-in-up">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-extrabold flex items-center gap-2"><Sparkles className="w-5 h-5 text-pink-500" /> Result</h3>
         {canPrint && (
@@ -332,7 +332,7 @@ function ResultView({ kind, data, canPrint }: { kind: string; data: any; canPrin
       </div>
 
       {(kind === 'script' || kind === 'ad_script') && (
-        <div className="space-y-4">
+        <div className="space-y-4 stagger">
           {data.title && <p className="text-xl font-extrabold text-slate-900">{data.title}</p>}
           {data.angle && <p className="text-sm font-semibold text-slate-500">Angle: {data.angle}</p>}
           {data.hook && <div className="bg-pink-50 border border-pink-100 rounded-xl p-4"><p className="text-[11px] font-bold uppercase tracking-wider text-pink-400 mb-1">Hook</p><p className="font-semibold text-slate-800">{data.hook}</p></div>}
@@ -350,7 +350,7 @@ function ResultView({ kind, data, canPrint }: { kind: string; data: any; canPrin
       )}
 
       {kind === 'hooks' && (
-        <ol className="space-y-2">
+        <ol className="space-y-2 stagger">
           {(data.hooks || []).map((h: any, i: number) => (
             <li key={i} className="bg-slate-50 rounded-xl p-3 border border-slate-100">
               <p className="font-semibold text-slate-800">{i + 1}. {h.text}</p>
@@ -361,7 +361,7 @@ function ResultView({ kind, data, canPrint }: { kind: string; data: any; canPrin
       )}
 
       {kind === 'optimize' && (
-        <div className="space-y-4">
+        <div className="space-y-4 stagger">
           <div className="grid grid-cols-2 gap-3">
             <ScoreBlock title="Before" s={data.before} muted />
             <ScoreBlock title="After" s={data.after} />
@@ -373,7 +373,7 @@ function ResultView({ kind, data, canPrint }: { kind: string; data: any; canPrin
       )}
 
       {kind === 'calendar' && (
-        <div className="space-y-3">
+        <div className="space-y-3 stagger">
           {data.summary && <p className="text-slate-600 font-medium">{data.summary}</p>}
           {(data.posts || []).map((p: any, i: number) => (
             <div key={i} className="bg-slate-50 rounded-xl p-4 border border-slate-100">
@@ -387,7 +387,7 @@ function ResultView({ kind, data, canPrint }: { kind: string; data: any; canPrin
       )}
 
       {kind === 'bulk' && (
-        <div className="space-y-2">
+        <div className="space-y-2 stagger">
           <p className="text-sm text-slate-500 font-semibold">Charged {data.charged_credits} credits for {data.succeeded} successful analyses.</p>
           {(data.items || []).map((it: any, i: number) => (
             <div key={i} className={`rounded-xl p-3 border ${it.ok ? 'bg-slate-50 border-slate-100' : 'bg-red-50 border-red-100'}`}>
