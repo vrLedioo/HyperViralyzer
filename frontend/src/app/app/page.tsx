@@ -368,8 +368,55 @@ export default function Home() {
   })();
 
   return (
-    <div className="flex h-screen w-full relative z-10 p-4 md:p-6 lg:p-8 gap-6 text-slate-900">
-      {/* Sidebar */}
+    <div className="flex flex-col lg:flex-row min-h-screen lg:h-screen w-full relative z-10 p-4 md:p-6 lg:p-8 gap-4 lg:gap-6 text-slate-900">
+      {/* Mobile top bar (the sidebar is desktop-only, so mobile needs its own nav/account) */}
+      <div className="lg:hidden bg-white/60 backdrop-blur-xl rounded-2xl border border-black/5 shadow-sm p-3 flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center"><Play className="w-4 h-4 text-white fill-white ml-0.5" /></div>
+            <span className="font-bold tracking-tight">Hyperyzer</span>
+          </Link>
+          {user ? (
+            <div className="flex items-center gap-2.5">
+              <span className="text-xs font-bold text-slate-600 bg-white/80 border border-black/5 px-2.5 py-1 rounded-lg">{planName ? '✨ ' : ''}{user.total_credits} cr</span>
+              <Link href="/account" title="Account" className="text-slate-400 hover:text-pink-600"><Settings className="w-5 h-5" /></Link>
+              <button onClick={logout} title="Log out" className="text-slate-400 hover:text-pink-600 cursor-pointer"><LogOut className="w-5 h-5" /></button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Link href="/login" className="text-sm font-bold text-slate-700 px-3 py-1.5 rounded-lg bg-white/80 border border-slate-200">Log in</Link>
+              <Link href="/signup" className="text-sm font-bold text-white px-3 py-1.5 rounded-lg bg-slate-900">Sign up</Link>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5">
+          <button onClick={() => { setMode('idea'); setResult(null); setError(''); }}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-bold transition-all cursor-pointer ${mode === 'idea' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 bg-white/40'}`}>
+            <Lightbulb className="w-4 h-4 text-pink-500" /> Idea
+          </button>
+          <button onClick={() => { setMode('video'); setResult(null); setError(''); }}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-bold transition-all cursor-pointer ${mode === 'video' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 bg-white/40'}`}>
+            <Video className="w-4 h-4 text-pink-500" /> Video
+          </button>
+          <Link href="/studio" className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-bold text-slate-500 bg-white/40">
+            <Sparkles className="w-4 h-4 text-pink-500" /> Studio
+          </Link>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowApiKeyInput(!showApiKeyInput)} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 bg-white/60 border border-black/5 cursor-pointer">
+            <Key className="w-3.5 h-3.5" /> Own API key
+          </button>
+          <Link href="/pricing" className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-pink-500 to-orange-500">
+            <Crown className="w-3.5 h-3.5" /> Plans
+          </Link>
+        </div>
+        {showApiKeyInput && (
+          <input type="password" placeholder="sk-..." value={userApiKey} onChange={(e) => setUserApiKey(e.target.value)}
+            className="w-full text-xs px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 focus:border-pink-500 outline-none" />
+        )}
+      </div>
+
+      {/* Sidebar (desktop) */}
       <aside className="w-72 bg-white/40 backdrop-blur-xl rounded-3xl hidden lg:flex flex-col overflow-hidden border border-black/5 shadow-sm">
         <div className="p-8 pb-6">
           <Link href="/" className="flex items-center gap-3 group">
@@ -516,7 +563,7 @@ export default function Home() {
       </aside>
 
       {/* Main */}
-      <main className="flex-1 flex flex-col h-full overflow-hidden max-w-[1200px] mx-auto">
+      <main className="flex-1 flex flex-col lg:h-full lg:overflow-hidden max-w-[1200px] mx-auto w-full">
         <header className="mb-6 px-2 flex items-center justify-between animate-fade-in">
           <div>
             <h2 className="text-3xl md:text-4xl font-black tracking-tight text-gradient">
@@ -530,10 +577,10 @@ export default function Home() {
           </div>
         </header>
 
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 flex-1 min-h-0 animate-fade-in-up">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 lg:flex-1 lg:min-h-0 animate-fade-in-up">
           {/* Input */}
-          <div className="flex-[1.1] min-h-0 flex flex-col relative max-w-2xl">
-            <div className="flex-1 bg-white rounded-[24px] p-6 md:p-8 flex flex-col border border-black/5 shadow-xl overflow-y-auto custom-scrollbar">
+          <div className="lg:flex-[1.1] lg:min-h-0 flex flex-col relative w-full lg:max-w-2xl">
+            <div className="lg:flex-1 bg-white rounded-[24px] p-6 md:p-8 flex flex-col border border-black/5 shadow-xl lg:overflow-y-auto custom-scrollbar">
               {notice && (
                 <div className="mb-4 bg-emerald-50 border-l-4 border-emerald-500 p-3 rounded-lg text-emerald-800 text-sm font-medium">{notice}</div>
               )}
@@ -651,7 +698,7 @@ export default function Home() {
           </div>
 
           {/* Results */}
-          <div className="flex-[0.9] min-h-0 flex flex-col">
+          <div className="lg:flex-[0.9] lg:min-h-0 flex flex-col w-full">
             {error && (
               <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-xl flex items-start gap-3 shadow-sm">
                 <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
@@ -659,7 +706,7 @@ export default function Home() {
               </div>
             )}
 
-            <div className="flex-1 bg-slate-50/80 rounded-[24px] p-6 md:p-8 flex flex-col relative overflow-y-auto custom-scrollbar border border-black/[0.06] shadow-inner">
+            <div className="lg:flex-1 bg-slate-50/80 rounded-[24px] p-6 md:p-8 flex flex-col relative lg:overflow-y-auto custom-scrollbar border border-black/[0.06] shadow-inner min-h-[300px]">
               <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200/60">
                 <h3 className="text-2xl font-extrabold tracking-tight text-slate-900">Your Report</h3>
                 {result ? (
