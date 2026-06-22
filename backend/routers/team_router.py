@@ -215,6 +215,16 @@ def accept_invite(
     if not team:
         raise HTTPException(status_code=400, detail="That team no longer exists.")
 
+    # Re-check capacity at accept time: the seat_limit may have been lowered, or
+    # an active member re-added, since the invite was sent.
+    active_count = len(session.exec(
+        select(TeamMembership).where(
+            TeamMembership.team_id == team.id, TeamMembership.status == "active",
+        )
+    ).all())
+    if active_count >= team.seat_limit:
+        raise HTTPException(status_code=403, detail="This team is full. Ask the owner to free a seat.")
+
     user.team_id = team.id
     user.team_role = "member"
     membership.user_id = user.id

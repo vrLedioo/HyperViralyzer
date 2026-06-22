@@ -36,16 +36,21 @@ def team_owner(user: User, session: Session) -> Optional[User]:
     return None
 
 
+def _owner_backs_team(owner: Optional[User]) -> bool:
+    """True if this owner's plan can actually back a team right now — active AND
+    on a plan that includes the 'teams' feature (Agency). Prevents a downgraded
+    owner (e.g. re-subscribed to Pro) from silently backing members."""
+    return bool(owner and owner.subscription_status == "active" and plan_has_feature(owner.plan, "teams"))
+
+
 def pool_user(user: User, session: Session) -> User:
     """The User whose credit buckets back this caller's spend.
 
-    For a team member with an active-subscription owner, that's the owner (shared
-    pool). Otherwise it's the caller themselves.
+    For a team member whose owner actively backs the team, that's the owner
+    (shared pool). Otherwise it's the caller themselves.
     """
     owner = team_owner(user, session)
-    if owner and owner.subscription_status == "active":
-        return owner
-    return user
+    return owner if _owner_backs_team(owner) else user
 
 
 def effective_plan(user: User, session: Session) -> str:
@@ -55,7 +60,7 @@ def effective_plan(user: User, session: Session) -> str:
     'free'. (A non-active subscription confers no Studio capability.)
     """
     owner = team_owner(user, session)
-    if owner and owner.subscription_status == "active":
+    if _owner_backs_team(owner):
         return owner.plan
     return user.plan if user.subscription_status == "active" else "free"
 

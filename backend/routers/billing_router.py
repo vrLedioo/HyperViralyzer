@@ -96,6 +96,14 @@ def checkout_subscription(
     if not settings.subscription_enabled:
         raise HTTPException(status_code=503, detail="Subscriptions are not configured.")
 
+    # A team member already spends the team's pool; a personal subscription would
+    # double-bill them. Make them leave the team first.
+    if user.team_id and user.team_role == "member":
+        raise HTTPException(
+            status_code=409,
+            detail="You're on a team plan. Leave the team before subscribing personally.",
+        )
+
     if settings.payment_provider == "paddle":
         price_id = settings.paddle_plan_price_map.get(req.plan)
         if not price_id:
@@ -296,7 +304,18 @@ async def paddle_webhook(request: Request, session: Session = Depends(get_sessio
                 user = session.exec(select(User).where(User.subscription_id == sub_id)).first()
             if user:
                 user.subscription_status = "active"
-                user.subscription_credits = plan_monthly_credits(user.plan)
+                # Resolve the plan from the charge itself, not just user.plan —
+                # Paddle does not guarantee that subscription.created arrives
+                # before this event, so user.plan could still be "free". Never
+                # refill a paying customer with 0 credits.
+                plan_key = (custom.get("plan")
+                            or _plan_from_paddle_items(data.get("items") or [])
+                            or user.plan)
+                allowance = plan_monthly_credits(plan_key)
+                if allowance > 0:
+                    if plan_key and plan_key != "free":
+                        user.plan = plan_key
+                    user.subscription_credits = allowance
                 session.add(user)
                 session.commit()
 

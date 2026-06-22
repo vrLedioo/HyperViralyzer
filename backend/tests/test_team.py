@@ -98,6 +98,21 @@ def test_non_agency_cannot_invite(client, make_user, auth):
     assert r.status_code == 403  # 'teams' is Agency-only
 
 
+def test_member_loses_backing_when_owner_not_agency(make_user):
+    # An owner who downgrades to Pro (no 'teams' feature) must stop backing members.
+    owner_id, tid = _agency_owner(make_user)
+    member_id = make_user("m@t.com", team_id=tid, team_role="member")
+    from studio import effective_plan, pool_user
+    with Session(engine) as s:
+        owner = s.get(User, owner_id)
+        owner.plan = "pro"  # downgraded; Pro has no team seats
+        s.add(owner)
+        s.commit()
+        member = s.get(User, member_id)
+        assert effective_plan(member, s) == "free"        # no longer inherits agency
+        assert pool_user(member, s).id == member_id        # spends own (empty) balance, not owner's
+
+
 def test_owner_delete_dissolves_team(client, make_user, auth):
     owner_id, tid = _agency_owner(make_user)
     member_id = make_user("m@t.com", team_id=tid, team_role="member")
