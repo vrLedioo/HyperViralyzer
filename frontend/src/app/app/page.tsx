@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { api, API_URL, getToken } from '@/lib/api';
+import { openCheckout } from '@/lib/paddle';
 
 const EXAMPLES = [
   {
@@ -213,6 +214,19 @@ export default function Home() {
     }
   }, [refresh]);
 
+  // The Paddle overlay completes in place (no redirect) — refresh credits/plan
+  // once the webhook has had a moment to fulfill.
+  useEffect(() => {
+    const onDone = () => {
+      setNotice('Payment complete — updating your account… ✨');
+      refresh();
+      setTimeout(() => refresh(), 4000);
+      loadHistory();
+    };
+    window.addEventListener('paddle:completed', onDone);
+    return () => window.removeEventListener('paddle:completed', onDone);
+  }, [refresh, loadHistory]);
+
   const consumePayTokenIfAny = () => localStorage.getItem(PAY_TOKEN_KEY) || undefined;
 
   const afterSuccess = async (payTokenConsumed: boolean) => {
@@ -327,7 +341,9 @@ export default function Home() {
       const data = await api<{ url: string }>('/api/checkout/credits', {
         method: 'POST', body: JSON.stringify({ pack }),
       });
-      if (data.url) window.location.href = data.url;
+      // Open the Paddle overlay in place; fall back to a redirect if Paddle.js
+      // isn't ready (the URL is Paddle's default payment link).
+      if (data.url && !openCheckout(data.url)) window.location.href = data.url;
     } catch (err: any) {
       setError(err.message || 'Could not start checkout.');
     }
@@ -339,7 +355,7 @@ export default function Home() {
       const data = await api<{ url: string }>('/api/checkout/subscription', {
         method: 'POST', body: JSON.stringify({ plan }),
       });
-      if (data.url) window.location.href = data.url;
+      if (data.url && !openCheckout(data.url)) window.location.href = data.url;
     } catch (err: any) {
       setError(err.message || 'Could not start subscription.');
     }

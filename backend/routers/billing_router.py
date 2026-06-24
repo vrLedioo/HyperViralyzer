@@ -111,7 +111,7 @@ def checkout_subscription(
         try:
             url = paddle_svc.create_checkout(
                 price_id=price_id,
-                success_url=f"{settings.frontend_url}/?subscribed=success",
+                success_url=f"{settings.frontend_url}/app?subscribed=success",
                 customer_email=user.email,
                 custom_data={"user_id": user.id, "kind": "subscription", "plan": req.plan},
             )
@@ -168,7 +168,7 @@ def checkout_credits(
         try:
             url = paddle_svc.create_checkout(
                 price_id=price_id,
-                success_url=f"{settings.frontend_url}/?credits=success",
+                success_url=f"{settings.frontend_url}/app?credits=success",
                 customer_email=user.email,
                 custom_data={"user_id": user.id, "kind": "credits", "pack": req.pack},
             )

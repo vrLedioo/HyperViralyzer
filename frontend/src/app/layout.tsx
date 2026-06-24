@@ -7,6 +7,7 @@ import "@fontsource/plus-jakarta-sans/700.css";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 import { StorageNotice } from "@/components/StorageNotice";
+import { PaddleScript } from "@/components/PaddleScript";
 
 const SITE_URL = "https://hyperyzer.com";
 const TITLE = "Hyperyzer — AI Video Scoring, Hashtags & Best Time to Post";
@@ -90,6 +91,7 @@ export default function RootLayout({
         </div>
         <AuthProvider>{children}</AuthProvider>
         <StorageNotice />
+        <PaddleScript />
       </body>
     </html>
   );
