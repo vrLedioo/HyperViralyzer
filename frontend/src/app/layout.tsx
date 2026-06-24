@@ -5,6 +5,7 @@ import "@fontsource/plus-jakarta-sans/500.css";
 import "@fontsource/plus-jakarta-sans/600.css";
 import "@fontsource/plus-jakarta-sans/700.css";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@/lib/auth";
 import { StorageNotice } from "@/components/StorageNotice";
 import { PaddleScript } from "@/components/PaddleScript";
@@ -92,6 +93,7 @@ export default function RootLayout({
         <AuthProvider>{children}</AuthProvider>
         <StorageNotice />
         <PaddleScript />
+        <Analytics />
       </body>
     </html>
   );
