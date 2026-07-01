@@ -2,7 +2,20 @@ import React from "react";
 import { Composition } from "remotion";
 import { HyperyzerAd, hyperyzerDefaultProps } from "./HyperyzerAd";
 import { HyperyzerAdV2 } from "./HyperyzerAdV2";
+import {
+  CAMPAIGN_FPS,
+  DAY_DURATIONS,
+  Day1,
+  Day2,
+  Day3,
+  Day4,
+  Day5,
+  Day6,
+  Day7,
+} from "./Campaign";
 import { DURATION, FPS } from "./lib/timing";
+
+const DAYS = { Day1, Day2, Day3, Day4, Day5, Day6, Day7 } as const;
 
 /**
  * One shared component, three aspect ratios. 9:16 is the hero format and the
@@ -65,6 +78,18 @@ export const RemotionRoot: React.FC = () => {
         width={1920}
         height={1080}
       />
+      {/* Week-1 campaign — seven 11–16s daily shorts (campaign/week-1.md). */}
+      {(Object.keys(DAYS) as (keyof typeof DAYS)[]).map((day) => (
+        <Composition
+          key={day}
+          id={`Week1-${day}`}
+          component={DAYS[day]}
+          durationInFrames={Math.round(DAY_DURATIONS[day] * CAMPAIGN_FPS)}
+          fps={CAMPAIGN_FPS}
+          width={1080}
+          height={1920}
+        />
+      ))}
     </>
   );
 };
