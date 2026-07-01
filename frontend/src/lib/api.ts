@@ -1,7 +1,12 @@
-// Centralized API access. Base URL is configurable via NEXT_PUBLIC_API_URL.
+// Centralized API access. Base URL is configurable via NEXT_PUBLIC_API_URL;
+// production builds fall back to the canonical Render API so a missing/empty
+// env var can never ship a build that points at localhost.
 
 export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  process.env.NEXT_PUBLIC_API_URL ||
+  (process.env.NODE_ENV === 'production'
+    ? 'https://hyperyzer-api.onrender.com'
+    : 'http://localhost:8000');
 
 const TOKEN_KEY = 'va_token';
 
