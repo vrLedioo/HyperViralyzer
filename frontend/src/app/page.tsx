@@ -3,6 +3,7 @@ import {
   Play, Sparkles, Target, TrendingUp, Zap, Check, ArrowRight, Upload,
   BrainCircuit, Clock, Hash, Star, PenLine, Megaphone, Wand2, ArrowLeftRight,
 } from 'lucide-react';
+import { TryTeaser } from '@/components/TryTeaser';
 
 export const metadata = {
   title: 'Hyperyzer — Score your video, get it fixed, and post it at the right time',
@@ -44,7 +45,7 @@ const PRICING = [
     points: ['150 credits / month', 'Idea = 1 credit · video = 5', 'Saved history & comparisons'],
   },
   {
-    name: 'Pro', price: '€39', per: '/mo', cta: 'Go Pro', highlight: true,
+    name: 'Pro', price: '€29', per: '/mo', cta: 'Go Pro', highlight: true,
     points: ['800 credits / month', '✨ Studio: scripts, ad scripts & hooks', 'One-Click Optimize · priority processing'],
   },
   {
@@ -58,7 +59,8 @@ const FAQ = [
   { q: 'Does it analyze real videos or just text?', a: 'Both. Test an idea by pasting a title + hook, or upload an actual clip — we transcribe the audio and analyze the real hook you delivered.' },
   { q: 'Can it write scripts, not just score them?', a: 'Yes — on Pro and Agency. The Studio generates full short-form scripts from an idea, direct-response ad scripts, batches of hooks, and rewrites your script to maximize its scores. Agency adds a content calendar, client brand profiles, bulk analysis, and team seats. Output works in your language too.' },
   { q: 'How do credits work?', a: 'An idea report costs 1 credit and a video report costs 5 (it includes transcription). Free accounts get 10 starter credits; subscriptions refill a monthly bucket; or top up anytime with a credit pack.' },
-  { q: 'Do I need an account?', a: 'You can use it free with no account by bringing your own OpenAI key. A free account gives you 10 starter credits and saved history — then subscribe or buy a credit pack whenever you want.' },
+  { q: 'Do I need an account?', a: 'No — grade one idea a day right on this page with no signup, or bring your own OpenAI key for unlimited use. A free account gives you 10 starter credits, full reports, and saved history — then subscribe or buy a credit pack whenever you want.' },
+  { q: 'Can I share my report?', a: 'Yes. Every report has a share button that creates a public link — a clean grade card with your scores and verdict that you can drop in a group chat, Discord, or comment section. You can revoke the link anytime.' },
   { q: 'What platforms is it for?', a: 'Anything short-form-first: YouTube, TikTok, Instagram Reels, and Shorts. The hook, hashtag, and timing advice adapts to the platform you pick.' },
   { q: 'Are the hashtags and posting times guaranteed?', a: 'They’re AI-generated, platform-tuned recommendations — strong starting points, not guarantees of views. Always sanity-check against your own analytics.' },
 ];
@@ -103,9 +105,9 @@ export default function Landing() {
           <Link href="/signup" className="group inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl text-lg font-bold text-white bg-gradient-to-r from-pink-500 to-orange-500 shadow-[0_10px_30px_rgba(236,72,153,0.3)] hover:shadow-[0_10px_35px_rgba(236,72,153,0.45)] hover:scale-[1.02] active:scale-[0.98] transition-all">
             Analyze my video free <ArrowRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
           </Link>
-          <Link href="/app" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl text-lg font-bold text-slate-700 bg-white/80 border border-black/5 hover:border-pink-300 transition-colors">
-            Try it now
-          </Link>
+          <a href="#try" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl text-lg font-bold text-slate-700 bg-white/80 border border-black/5 hover:border-pink-300 transition-colors">
+            Try it now — no signup
+          </a>
         </div>
         <p className="mt-4 text-sm text-slate-500 font-medium flex items-center justify-center gap-1.5">
           <Check className="w-4 h-4 text-emerald-500" /> No credit card · 10 free credits to start
@@ -158,6 +160,17 @@ export default function Landing() {
             Cut the first two sentences so the &ldquo;delete the channel&rdquo; threat lands in the first 5 seconds.
           </p>
         </div>
+      </section>
+
+      {/* Live teaser — grade one idea free, no signup */}
+      <section id="try" className="max-w-4xl mx-auto px-5 sm:px-8 py-14 scroll-mt-8">
+        <p className="text-center text-xs font-bold text-pink-500 uppercase tracking-widest mb-3">Try it right now</p>
+        <h2 className="text-center text-3xl sm:text-4xl font-extrabold tracking-tight mb-3">Grade your next video idea — free, no signup</h2>
+        <p className="text-center text-slate-600 font-medium max-w-2xl mx-auto mb-10 leading-relaxed">
+          Paste a title and hook. In seconds you&apos;ll get your grade, scores, the AI&apos;s verdict,
+          and one rewritten hook — the full report is free when you create an account.
+        </p>
+        <TryTeaser />
       </section>
 
       {/* Problem / solution */}
@@ -254,6 +267,9 @@ export default function Landing() {
           ))}
         </div>
         <p className="text-center text-sm text-slate-500 font-medium mt-6">
+          Pay yearly and get <span className="font-bold text-slate-700">2 months free</span> — plus your whole year of credits upfront.
+        </p>
+        <p className="text-center text-sm text-slate-500 font-medium mt-2">
           No subscription? Buy pay-as-you-go credit packs instead — <span className="font-bold text-slate-700">50 credits for €9</span> or <span className="font-bold text-slate-700">200 for €29</span>. Pack credits never expire.
         </p>
       </section>

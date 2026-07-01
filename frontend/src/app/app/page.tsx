@@ -7,6 +7,7 @@ import {
   Clock, AlertCircle, Key, CreditCard, ChevronRight, LogOut, User as UserIcon,
   Lightbulb, Video, UploadCloud, FileText, Crown, Hash, Copy, Check, Settings,
   Wand2, PenLine, MessageSquare, AlertTriangle, ArrowLeftRight, X, Gauge,
+  Share2, Rocket, Eye,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { api, API_URL, getToken } from '@/lib/api';
@@ -68,6 +69,7 @@ interface Improvements {
 }
 
 interface AnalysisResult {
+  id?: number | null; // saved Analysis id (share + result-logging handle)
   hook_score: number;
   retention_score: number;
   viral_score: number;
@@ -78,6 +80,9 @@ interface AnalysisResult {
   transcript?: string | null;
   pay_token_consumed?: boolean;
   title?: string; // what this report was generated for (survives history restores)
+  share_id?: string | null;
+  posted_at?: string | null;
+  result_views?: number | null;
 }
 
 interface HistoryItem {
@@ -93,16 +98,20 @@ interface HistoryItem {
   hashtags?: Hashtags;
   best_times?: BestTimes;
   improvements?: Improvements;
+  share_id?: string | null;
+  posted_at?: string | null;
+  result_views?: number | null;
   created_at: string;
 }
 
-interface PlanOut { key: string; name: string; price_eur: number; monthly_credits: number; priority: boolean; team: boolean; tagline: string; available: boolean }
+interface PlanOut { key: string; name: string; price_eur: number; price_eur_year: number; monthly_credits: number; priority: boolean; team: boolean; tagline: string; available: boolean }
 interface PackOut { key: string; name: string; price_eur: number; credits: number; available: boolean }
 
 interface AppConfig {
   payment_provider: string;
   billing_enabled: boolean;
   subscription_enabled: boolean;
+  annual_enabled: boolean;
   credits_purchase_enabled: boolean;
   pay_per_use_enabled: boolean;
   byok_enabled: boolean;
@@ -130,6 +139,12 @@ function hasHashtags(h?: Hashtags): boolean {
 function hasTimes(t?: BestTimes): boolean {
   return !!t && ((t.slots?.length || 0) > 0 || !!t.summary);
 }
+function fmtViews(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}K`;
+  return String(n);
+}
+
 function hasImprovements(im?: Improvements): boolean {
   return !!im && (
     (im.hook_rewrites?.length || 0) > 0 || (im.title_suggestions?.length || 0) > 0 ||
@@ -200,6 +215,7 @@ export default function Home() {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [compareMode, setCompareMode] = useState(false);
   const [compareIds, setCompareIds] = useState<number[]>([]);
+  const [yearly, setYearly] = useState(false);
 
   const charCount = script.length;
   const wordCount = script.trim() ? script.trim().split(/\s+/).length : 0;
@@ -363,6 +379,7 @@ export default function Home() {
               clearInterval(pollRef.current!);
               payConsumed = !!job.pay_token_consumed;
               setResult({
+                id: job.analysis_id,
                 hook_score: job.hook_score, retention_score: job.retention_score,
                 viral_score: job.viral_score, feedback: job.feedback,
                 hashtags: job.hashtags, best_times: job.best_times,
@@ -416,7 +433,8 @@ export default function Home() {
     if (!user) { window.location.href = '/signup'; return; }
     try {
       const data = await api<{ url: string }>('/api/checkout/subscription', {
-        method: 'POST', body: JSON.stringify({ plan }),
+        method: 'POST',
+        body: JSON.stringify({ plan, interval: yearly && config?.annual_enabled ? 'year' : 'month' }),
       });
       if (data.url && !openCheckout(data.url)) window.location.href = data.url;
     } catch (err: any) {
@@ -429,13 +447,21 @@ export default function Home() {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
     setIsLoading(false); setStatusLabel(''); setError('');
     setResult({
+      id: item.id,
       hook_score: item.hook_score, retention_score: item.retention_score,
       viral_score: item.viral_score, feedback: item.feedback,
       hashtags: item.hashtags, best_times: item.best_times,
       improvements: item.improvements,
       transcript: item.transcript ?? undefined,
       title: item.title,
+      share_id: item.share_id, posted_at: item.posted_at, result_views: item.result_views,
     });
+  };
+
+  // Patch share/posted metadata onto the visible result + keep history in sync.
+  const updateResultMeta = (patch: Partial<AnalysisResult>) => {
+    setResult((r) => (r ? { ...r, ...patch } : r));
+    loadHistory();
   };
 
   const toggleCompareId = (id: number) => {
@@ -585,7 +611,10 @@ export default function Home() {
                       )}
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-slate-700 truncate">{item.title}</p>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase">{item.kind}</p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase">
+                          {item.kind}
+                          {item.posted_at && <span className="text-emerald-600"> · posted{item.result_views != null ? ` · ${fmtViews(item.result_views)} views` : ''}</span>}
+                        </p>
                       </div>
                     </div>
                     <span className={`text-[10px] font-bold px-2 py-1 rounded-md border shrink-0 ${color}`}>{label}</span>
@@ -649,13 +678,24 @@ export default function Home() {
             </button>
           )}
 
-          {/* Subscription plans (Lemon Squeezy) */}
+          {/* Yearly toggle (2 months free) — shown when annual prices are configured */}
+          {config?.subscription_enabled && config.annual_enabled && (
+            <button onClick={() => setYearly(!yearly)}
+              className="flex items-center justify-between w-full px-2 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer text-slate-600 hover:bg-slate-50">
+              <span>Bill yearly · 2 months free</span>
+              <span className={`w-8 h-4.5 rounded-full relative transition-colors ${yearly ? 'bg-pink-500' : 'bg-slate-300'}`}>
+                <span className={`absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white shadow transition-all ${yearly ? 'left-4' : 'left-0.5'}`} />
+              </span>
+            </button>
+          )}
+
+          {/* Subscription plans */}
           {config?.subscription_enabled && availablePlans.map((p) => (
             <button key={p.key} onClick={() => handleSubscribe(p.key)}
               className={`flex items-center justify-between gap-2 w-full p-2 rounded-lg transition-all text-sm font-semibold cursor-pointer ${user?.plan === p.key ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-default' : 'bg-gradient-to-r from-pink-500 to-orange-500 hover:opacity-95 text-white'}`}
               disabled={user?.plan === p.key}>
               <span className="flex items-center gap-2"><Crown className="w-4 h-4" /> {p.name}</span>
-              <span>{user?.plan === p.key ? 'Current' : `€${p.price_eur}/mo`}</span>
+              <span>{user?.plan === p.key ? 'Current' : yearly && config.annual_enabled ? `€${p.price_eur_year}/yr` : `€${p.price_eur}/mo`}</span>
             </button>
           ))}
 
@@ -830,6 +870,10 @@ export default function Home() {
                 <h3 className="text-2xl font-extrabold tracking-tight text-slate-900">Your Report</h3>
                 {result ? (
                   <div className="flex items-center gap-2">
+                    {user && result.id != null && (
+                      <ShareButton analysisId={result.id} shareId={result.share_id}
+                        onChange={(shareId) => updateResultMeta({ share_id: shareId })} />
+                    )}
                     <CopyButton text={buildReportText(result, result.title || title)} label="Copy report" />
                     <div className="flex items-center gap-1.5 px-3 py-1 bg-pink-100 rounded-lg text-pink-700 text-xs font-bold uppercase tracking-wider shadow-sm border border-pink-200"><Sparkles className="w-3 h-3" /> AI Generated</div>
                   </div>
@@ -876,6 +920,11 @@ export default function Home() {
                 )}
               </div>
 
+              {user && result?.id != null && (
+                <PostedTracker id={result.id} postedAt={result.posted_at} views={result.result_views}
+                  predicted={overallScore(result)}
+                  onChange={(posted_at, result_views) => updateResultMeta({ posted_at, result_views })} />
+              )}
               {result && hasImprovements(result.improvements) && <ImprovementsCard improvements={result.improvements!} />}
               {result && hasHashtags(result.hashtags) && <HashtagsCard hashtags={result.hashtags!} />}
               {result && hasTimes(result.best_times) && <BestTimesCard times={result.best_times!} />}
@@ -1002,6 +1051,127 @@ function CopyButton({ text, label, compact = false }: { text: string; label?: st
     <button onClick={copy} className="flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-white hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer">
       {copied ? <><Check className="w-3.5 h-3.5 text-emerald-500" /> Copied</> : <><Copy className="w-3.5 h-3.5" /> {label || 'Copy'}</>}
     </button>
+  );
+}
+
+function ShareButton({ analysisId, shareId, onChange }: {
+  analysisId: number;
+  shareId?: string | null;
+  onChange: (shareId: string | null) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const setShared = async (enabled: boolean) => {
+    setBusy(true);
+    try {
+      const res = await api<{ share_id: string | null; share_url: string | null }>(
+        `/api/analysis/${analysisId}/share`,
+        { method: 'POST', body: JSON.stringify({ enabled }) },
+      );
+      if (enabled && res.share_url) {
+        try {
+          await navigator.clipboard.writeText(res.share_url);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1800);
+        } catch { /* clipboard unavailable */ }
+      }
+      onChange(res.share_id);
+    } catch { /* leave state as-is */ } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="flex items-center gap-1">
+      <button onClick={() => setShared(true)} disabled={busy}
+        title={shareId ? 'Copy your public report link' : 'Create a public link to this report'}
+        className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors cursor-pointer disabled:opacity-60 ${shareId ? 'text-pink-700 bg-pink-50 border-pink-200 hover:bg-pink-100' : 'text-slate-600 bg-white border-slate-200 hover:bg-slate-100'}`}>
+        {copied ? <><Check className="w-3.5 h-3.5 text-emerald-500" /> Link copied</> : <><Share2 className="w-3.5 h-3.5" /> {shareId ? 'Copy link' : 'Share'}</>}
+      </button>
+      {shareId && (
+        <button onClick={() => setShared(false)} disabled={busy} title="Make this report private again"
+          className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-white transition-colors cursor-pointer disabled:opacity-60">
+          <X className="w-3.5 h-3.5" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function PostedTracker({ id, postedAt, views, predicted, onChange }: {
+  id: number;
+  postedAt?: string | null;
+  views?: number | null;
+  predicted: number;
+  onChange: (postedAt: string | null, views: number | null) => void;
+}) {
+  const [input, setInput] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(false);
+
+  const patch = async (body: { posted: boolean; views?: number }) => {
+    setBusy(true);
+    try {
+      const res = await api<{ posted_at: string | null; result_views: number | null }>(
+        `/api/analysis/${id}/result`,
+        { method: 'PATCH', body: JSON.stringify(body) },
+      );
+      onChange(res.posted_at, res.result_views);
+      setEditing(false);
+      setInput('');
+    } catch { /* leave state as-is */ } finally {
+      setBusy(false);
+    }
+  };
+  const saveViews = () => {
+    const n = parseInt(input.replace(/[.,\s]/g, ''), 10);
+    if (!Number.isNaN(n) && n >= 0) patch({ posted: true, views: n });
+  };
+
+  return (
+    <div className="mt-4 bg-white border-2 border-slate-100 p-5 rounded-2xl">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h4 className="text-sm font-bold flex items-center gap-2 text-slate-900">
+          <Rocket className={`w-4 h-4 ${postedAt ? 'text-emerald-500' : 'text-pink-500'}`} />
+          {postedAt ? 'Posted' : 'Did you post this?'}
+        </h4>
+        {!postedAt ? (
+          <button onClick={() => patch({ posted: true })} disabled={busy}
+            className="flex items-center gap-1.5 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 px-3 py-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-60">
+            <Check className="w-3.5 h-3.5" /> I posted this
+          </button>
+        ) : views != null && !editing ? (
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1.5 text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
+              <Eye className="w-3.5 h-3.5" /> {fmtViews(views)} views
+            </span>
+            <button onClick={() => { setEditing(true); setInput(String(views)); }}
+              className="text-xs font-bold text-slate-400 hover:text-pink-600 cursor-pointer">Edit</button>
+            <button onClick={() => patch({ posted: false })} disabled={busy} title="Un-mark as posted"
+              className="p-1 rounded text-slate-300 hover:text-red-500 cursor-pointer disabled:opacity-60"><X className="w-3.5 h-3.5" /></button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <input type="number" min={0} value={input} onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && saveViews()}
+              placeholder="Views after 48h"
+              className="w-36 text-xs px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 focus:border-pink-500 outline-none font-semibold" />
+            <button onClick={saveViews} disabled={busy || !input}
+              className="text-xs font-bold text-white bg-gradient-to-r from-pink-500 to-orange-500 px-3 py-1.5 rounded-lg cursor-pointer disabled:opacity-60">Save</button>
+            {!editing && (
+              <button onClick={() => patch({ posted: false })} disabled={busy} title="Un-mark as posted"
+                className="p-1 rounded text-slate-300 hover:text-red-500 cursor-pointer disabled:opacity-60"><X className="w-3.5 h-3.5" /></button>
+            )}
+          </div>
+        )}
+      </div>
+      <p className="text-xs text-slate-400 font-medium mt-2">
+        {postedAt
+          ? views != null
+            ? `Predicted ${predicted}/100 — log results on every post and your history becomes proof of what works in your niche.`
+            : 'Come back in ~48h and log the view count to track predicted vs. actual.'
+          : 'Mark reports as posted and log real views — your history becomes a record of what actually works.'}
+      </p>
+    </div>
   );
 }
 

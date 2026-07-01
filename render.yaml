@@ -35,7 +35,14 @@ services:
       - key: PADDLE_PRICE_PRO
         sync: false            # Pro €29/mo
       - key: PADDLE_PRICE_AGENCY
-        sync: false            # Agency €79/mo
+        sync: false            # Agency €99/mo
+      # Optional annual prices (2 months free). Leave unset to hide annual billing.
+      # - key: PADDLE_PRICE_CREATOR_YEAR
+      #   sync: false          # Creator €140/yr
+      # - key: PADDLE_PRICE_PRO_YEAR
+      #   sync: false          # Pro €290/yr
+      # - key: PADDLE_PRICE_AGENCY_YEAR
+      #   sync: false          # Agency €990/yr
       # One price id per one-time credit pack:
       - key: PADDLE_PRICE_PACK_SMALL
         sync: false            # 50 credits / €9

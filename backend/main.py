@@ -152,7 +152,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "DELETE"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["Content-Type", "Authorization"],
 )
 
@@ -187,6 +187,7 @@ class PlanOut(BaseModel):
     key: str
     name: str
     price_eur: int
+    price_eur_year: int      # annual price (2 months free); billed once a year
     monthly_credits: int
     priority: bool
     team: bool
@@ -208,6 +209,7 @@ class ConfigResponse(BaseModel):
     payment_provider: str          # "none" | "paddle" | "stripe" | "lemonsqueezy"
     billing_enabled: bool          # any paid option available
     subscription_enabled: bool     # subscription checkout available
+    annual_enabled: bool           # annual (yearly) subscription prices configured
     credits_purchase_enabled: bool # logged-in credit-pack top-up
     pay_per_use_enabled: bool      # anonymous one-off (Stripe)
     byok_enabled: bool             # users may supply their own OpenAI key
@@ -236,7 +238,8 @@ def get_config():
     plans = [
         PlanOut(
             key=k, available=k in available_plans,
-            name=p["name"], price_eur=p["price_eur"], monthly_credits=p["monthly_credits"],
+            name=p["name"], price_eur=p["price_eur"], price_eur_year=p["price_eur_year"],
+            monthly_credits=p["monthly_credits"],
             priority=p["priority"], team=p["team"], studio=p["studio"],
             features=sorted(p["features"]), tagline=p["tagline"],
         )
@@ -250,6 +253,7 @@ def get_config():
         payment_provider=settings.payment_provider,
         billing_enabled=settings.billing_enabled,
         subscription_enabled=settings.subscription_enabled,
+        annual_enabled=settings.annual_billing_enabled,
         credits_purchase_enabled=settings.credits_purchase_enabled,
         pay_per_use_enabled=settings.pay_per_use_enabled,
         byok_enabled=True,

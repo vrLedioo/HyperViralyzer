@@ -92,6 +92,10 @@ class Settings(BaseSettings):
     paddle_price_creator: str | None = None
     paddle_price_pro: str | None = None
     paddle_price_agency: str | None = None
+    # Annual price ids (optional — annual billing is offered only when set).
+    paddle_price_creator_year: str | None = None
+    paddle_price_pro_year: str | None = None
+    paddle_price_agency_year: str | None = None
     # One price id per one-time credit pack (see plans.PACKS).
     paddle_price_pack_small: str | None = None
     paddle_price_pack_large: str | None = None
@@ -134,6 +138,16 @@ class Settings(BaseSettings):
         return {k: v for k, v in raw.items() if v}
 
     @property
+    def paddle_plan_price_map_year(self) -> dict[str, str]:
+        """plan_key -> ANNUAL price_id, for plans with an annual price configured."""
+        raw = {
+            "creator": self.paddle_price_creator_year,
+            "pro": self.paddle_price_pro_year,
+            "agency": self.paddle_price_agency_year,
+        }
+        return {k: v for k, v in raw.items() if v}
+
+    @property
     def paddle_pack_price_map(self) -> dict[str, str]:
         """pack_key -> price_id, for packs whose price is configured."""
         raw = {
@@ -144,7 +158,20 @@ class Settings(BaseSettings):
 
     @property
     def paddle_price_to_plan(self) -> dict[str, str]:
-        return {v: k for k, v in self.paddle_plan_price_map.items()}
+        m = {v: k for k, v in self.paddle_plan_price_map.items()}
+        m.update({v: k for k, v in self.paddle_plan_price_map_year.items()})
+        return m
+
+    @property
+    def paddle_price_to_interval(self) -> dict[str, str]:
+        """price_id -> "month" | "year" (webhooks resolve the granted allowance)."""
+        m = {v: "month" for v in self.paddle_plan_price_map.values()}
+        m.update({v: "year" for v in self.paddle_plan_price_map_year.values()})
+        return m
+
+    @property
+    def annual_billing_enabled(self) -> bool:
+        return self.payment_provider == "paddle" and bool(self.paddle_plan_price_map_year)
 
     # --- Plan / pack <-> Lemon Squeezy variant maps ---
     @property

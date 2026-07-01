@@ -71,6 +71,14 @@ class Analysis(SQLModel, table=True):
     hashtags: str = ""
     best_times: str = ""
     improvements: str = ""
+    # Public share handle for /r/<share_id> (None = private). Unguessable and
+    # revocable (cleared on revoke). Uniqueness comes from token randomness —
+    # migrated tables can't get a UNIQUE constraint via ALTER on SQLite.
+    share_id: Optional[str] = Field(default=None, index=True)
+    # Outcome loop: when the creator marked this as posted, and the actual view
+    # count they logged afterwards (predicted-vs-actual calibration).
+    posted_at: Optional[datetime] = None
+    result_views: Optional[int] = None
     created_at: datetime = Field(default_factory=_utcnow)
 
 

@@ -27,10 +27,14 @@ PRO_FEATURES = {"script", "ad_script", "hooks", "optimize"}
 AGENCY_FEATURES = PRO_FEATURES | {"clients", "bulk", "whitelabel_pdf", "calendar", "teams"}
 
 # Plan key -> metadata. Order matters for display (cheapest first).
+# `price_eur_year` = annual billing at 2 months free (10x monthly). An annual
+# subscription grants the WHOLE year of credits upfront (12x monthly_credits) —
+# marketed as a perk, and it avoids needing a monthly-refill cron.
 PLANS: dict[str, dict] = {
     "creator": {
         "name": "Creator",
         "price_eur": 14,
+        "price_eur_year": 140,
         "monthly_credits": 150,
         "priority": False,
         "team": False,
@@ -40,7 +44,8 @@ PLANS: dict[str, dict] = {
     },
     "pro": {
         "name": "Pro",
-        "price_eur": 39,
+        "price_eur": 29,
+        "price_eur_year": 290,
         "monthly_credits": 800,
         "priority": True,
         "team": False,
@@ -51,6 +56,7 @@ PLANS: dict[str, dict] = {
     "agency": {
         "name": "Agency",
         "price_eur": 99,
+        "price_eur_year": 990,
         "monthly_credits": 3000,
         "priority": True,
         "team": True,
@@ -71,6 +77,13 @@ PACKS: dict[str, dict] = {
 def plan_monthly_credits(plan_key: str | None) -> int:
     p = PLANS.get(plan_key or "")
     return int(p["monthly_credits"]) if p else 0
+
+
+def plan_allowance(plan_key: str | None, interval: str | None = "month") -> int:
+    """Credits granted per billing cycle: monthly allowance, or the whole year
+    upfront for annual subscriptions."""
+    monthly = plan_monthly_credits(plan_key)
+    return monthly * 12 if interval == "year" else monthly
 
 
 def pack_credits(pack_key: str | None) -> int:

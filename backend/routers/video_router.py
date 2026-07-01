@@ -48,6 +48,7 @@ class JobStatusResponse(BaseModel):
     title: str
     pay_token_consumed: bool = False
     # populated when status == "done"
+    analysis_id: Optional[int] = None  # share / result-logging handle
     transcript: Optional[str] = None
     hook_score: Optional[int] = None
     retention_score: Optional[int] = None
@@ -264,6 +265,7 @@ def job_status(
     if job.status == "done" and job.analysis_id:
         analysis = session.get(Analysis, job.analysis_id)
         if analysis:
+            resp.analysis_id = analysis.id
             resp.transcript = analysis.input_text
             resp.hook_score = analysis.hook_score
             resp.retention_score = analysis.retention_score

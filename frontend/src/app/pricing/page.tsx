@@ -16,7 +16,7 @@ const PLANS = [
     points: ['150 credits / month', 'Idea = 1 credit · video = 5', 'Saved history & comparisons'],
   },
   {
-    name: 'Pro', price: '€39', per: '/mo', highlight: true,
+    name: 'Pro', price: '€29', per: '/mo', highlight: true,
     points: [
       '800 credits / month',
       '✨ Studio: AI Script Writer',
@@ -100,6 +100,11 @@ export default function Pricing() {
       </div>
 
       <p className="text-sm text-slate-500 font-medium mt-8">
+        Prefer yearly? Annual billing gets you <strong>2 months free</strong> and your whole year of
+        credits upfront — pick it at checkout.
+      </p>
+
+      <p className="text-sm text-slate-500 font-medium mt-3">
         Payments are processed by Paddle (our Merchant of Record), which handles billing and taxes.
         See our <Link href="/refund" className="text-pink-600 underline">Refund Policy</Link>.
       </p>

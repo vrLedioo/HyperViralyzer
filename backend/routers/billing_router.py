@@ -33,7 +33,7 @@ from auth import create_pay_token, get_current_user
 from config import settings
 from db import get_session
 from models import RedeemedSession, User
-from plans import pack_credits, plan_monthly_credits
+from plans import pack_credits, plan_allowance, plan_monthly_credits
 from services import lemonsqueezy as ls
 from services import paddle as paddle_svc
 
@@ -48,7 +48,8 @@ class CheckoutResponse(BaseModel):
 
 
 class SubscriptionCheckoutRequest(BaseModel):
-    plan: str = "pro"  # creator | pro | agency
+    plan: str = "pro"        # creator | pro | agency
+    interval: str = "month"  # month | year (year = 2 months free, Paddle only)
 
 
 class CreditsCheckoutRequest(BaseModel):
@@ -105,7 +106,10 @@ def checkout_subscription(
         )
 
     if settings.payment_provider == "paddle":
-        price_id = settings.paddle_plan_price_map.get(req.plan)
+        interval = "year" if req.interval == "year" else "month"
+        price_map = (settings.paddle_plan_price_map_year if interval == "year"
+                     else settings.paddle_plan_price_map)
+        price_id = price_map.get(req.plan)
         if not price_id:
             raise HTTPException(status_code=400, detail="Unknown or unavailable plan.")
         try:
@@ -113,7 +117,8 @@ def checkout_subscription(
                 price_id=price_id,
                 success_url=f"{settings.frontend_url}/app?subscribed=success",
                 customer_email=user.email,
-                custom_data={"user_id": user.id, "kind": "subscription", "plan": req.plan},
+                custom_data={"user_id": user.id, "kind": "subscription",
+                             "plan": req.plan, "interval": interval},
             )
         except paddle_svc.PaddleError as e:
             raise HTTPException(status_code=502, detail=f"Paddle error: {e}")
@@ -271,6 +276,22 @@ def _plan_from_paddle_items(items: list) -> str | None:
     return None
 
 
+def _interval_from_paddle_items(items: list) -> str | None:
+    for item in items:
+        price_id = str((item.get("price") or {}).get("id") or item.get("price_id") or "")
+        interval = settings.paddle_price_to_interval.get(price_id)
+        if interval:
+            return interval
+    return None
+
+
+def _paddle_interval(custom: dict, items: list) -> str:
+    """Billing interval for an event: checkout custom_data first, then the price
+    id, defaulting to monthly (annual grants the whole year of credits upfront)."""
+    interval = custom.get("interval") or _interval_from_paddle_items(items)
+    return "year" if interval == "year" else "month"
+
+
 @router.post("/paddle/webhook")
 async def paddle_webhook(request: Request, session: Session = Depends(get_session)):
     """Fulfill Paddle transactions and subscription events."""
@@ -308,10 +329,11 @@ async def paddle_webhook(request: Request, session: Session = Depends(get_sessio
                 # Paddle does not guarantee that subscription.created arrives
                 # before this event, so user.plan could still be "free". Never
                 # refill a paying customer with 0 credits.
+                items = data.get("items") or []
                 plan_key = (custom.get("plan")
-                            or _plan_from_paddle_items(data.get("items") or [])
+                            or _plan_from_paddle_items(items)
                             or user.plan)
-                allowance = plan_monthly_credits(plan_key)
+                allowance = plan_allowance(plan_key, _paddle_interval(custom, items))
                 if allowance > 0:
                     if plan_key and plan_key != "free":
                         user.plan = plan_key
@@ -349,7 +371,8 @@ async def paddle_webhook(request: Request, session: Session = Depends(get_sessio
     # --- Subscriptions ------------------------------------------------------ #
     elif event_type in ("subscription.created", "subscription.updated"):
         status = str(data.get("status") or "")
-        plan_key = custom.get("plan") or _plan_from_paddle_items(data.get("items") or [])
+        items = data.get("items") or []
+        plan_key = custom.get("plan") or _plan_from_paddle_items(items)
         user = _find_user_by(session, user_id=custom.get("user_id"), email=_paddle_email(data))
         if not user and data_id:
             user = session.exec(select(User).where(User.subscription_id == data_id)).first()
@@ -362,7 +385,8 @@ async def paddle_webhook(request: Request, session: Session = Depends(get_sessio
                     plan_changed = plan_key != user.plan
                     user.plan = plan_key
                     if event_type == "subscription.created" or plan_changed:
-                        user.subscription_credits = plan_monthly_credits(plan_key)
+                        user.subscription_credits = plan_allowance(
+                            plan_key, _paddle_interval(custom, items))
             elif status == "canceled":
                 user.subscription_status = "canceled"
                 user.plan = "free"

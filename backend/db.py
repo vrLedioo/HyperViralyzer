@@ -39,6 +39,10 @@ _ADDED_COLUMNS: dict[str, dict[str, str]] = {
         "hashtags": "VARCHAR NOT NULL DEFAULT ''",
         "best_times": "VARCHAR NOT NULL DEFAULT ''",
         "improvements": "VARCHAR NOT NULL DEFAULT ''",
+        # Nullable — no DEFAULT clause needed.
+        "share_id": "VARCHAR",
+        "posted_at": "TIMESTAMP",
+        "result_views": "INTEGER",
     },
 }
 
