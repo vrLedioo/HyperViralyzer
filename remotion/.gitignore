@@ -2,3 +2,5 @@ node_modules/
 out/
 .DS_Store
 *.log
+# generated per-day scores — rebuild with: node scripts/render-week1-audio.mjs
+public/week1-*.wav

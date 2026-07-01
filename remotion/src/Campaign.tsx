@@ -338,8 +338,13 @@ const Morph: React.FC<{ times: number[]; colors: string[] }> = ({ times, colors 
   );
 };
 
-/** Composition frame: letterbox the design canvas + font gate + audio bed. */
-const Frame: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+/** Composition frame: letterbox the design canvas + font gate + audio bed.
+ * Each day mounts its own score (public/week1-dayN.wav, built by
+ * scripts/render-week1-audio.mjs with SFX cues matched to that day's scenes). */
+const Frame: React.FC<{ audio: string; children: React.ReactNode }> = ({
+  audio,
+  children,
+}) => {
   const { width, height } = useVideoConfig();
   const [handle] = React.useState(() => delayRender("fonts"));
   React.useEffect(() => {
@@ -361,7 +366,7 @@ const Frame: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       >
         {children}
       </div>
-      <Audio src={staticFile("soundtrack.wav")} />
+      <Audio src={staticFile(audio)} />
     </AbsoluteFill>
   );
 };
@@ -537,7 +542,7 @@ export const Day1: React.FC = () => {
   const { fps } = useVideoConfig();
   const D = DAY_DURATIONS.Day1;
   return (
-    <Frame>
+    <Frame audio="week1-day1.wav">
       <Morph
         times={[0, 3.8, 4.5, 7.6, 8.2, D]}
         colors={["#070709", "#070709", COLORS.bg, COLORS.bg, "#070709", "#070709"]}
@@ -667,7 +672,7 @@ export const Day2: React.FC = () => {
   const { fps } = useVideoConfig();
   const D = DAY_DURATIONS.Day2;
   return (
-    <Frame>
+    <Frame audio="week1-day2.wav">
       <Morph
         times={[0, 10.4, 11.2, D]}
         colors={[COLORS.bg, COLORS.bg, "#070709", "#070709"]}
@@ -788,7 +793,7 @@ export const Day3: React.FC = () => {
   const { fps } = useVideoConfig();
   const D = DAY_DURATIONS.Day3;
   return (
-    <Frame>
+    <Frame audio="week1-day3.wav">
       <Morph
         times={[0, 6.6, 7.4, 10.8, 11.5, D]}
         colors={["#070709", "#070709", COLORS.bg, COLORS.bg, "#070709", "#070709"]}
@@ -905,7 +910,7 @@ export const Day4: React.FC = () => {
   const D = DAY_DURATIONS.Day4;
   const body = 9.0;
   return (
-    <Frame>
+    <Frame audio="week1-day4.wav">
       <Morph times={[0, 8.3, 9.0, D]} colors={[COLORS.bg, COLORS.bg, "#070709", "#070709"]} />
       <Sequence {...seq(0, body, fps)} name="optimize">
         <SceneFade durationSec={body} out={0.5}>
@@ -1005,7 +1010,7 @@ export const Day5: React.FC = () => {
   const D = DAY_DURATIONS.Day5;
   const body = 12.0;
   return (
-    <Frame>
+    <Frame audio="week1-day5.wav">
       <Morph times={[0, D]} colors={["#070709", "#070709"]} />
       <Sequence {...seq(0, body, fps)} name="studio">
         <SceneFade durationSec={body} out={0.5}>
@@ -1144,7 +1149,7 @@ export const Day6: React.FC = () => {
   const D = DAY_DURATIONS.Day6;
   const body = 8.5;
   return (
-    <Frame>
+    <Frame audio="week1-day6.wav">
       <Morph times={[0, 7.8, 8.5, D]} colors={[COLORS.bg, COLORS.bg, "#070709", "#070709"]} />
       <Sequence {...seq(0, body, fps)} name="timing">
         <SceneFade durationSec={body} out={0.5}>
@@ -1274,7 +1279,7 @@ export const Day7: React.FC = () => {
   const { fps } = useVideoConfig();
   const D = DAY_DURATIONS.Day7;
   return (
-    <Frame>
+    <Frame audio="week1-day7.wav">
       <Morph times={[0, D]} colors={["#070709", "#070709"]} />
       <Sequence {...seq(0, 4.0, fps)} name="montage">
         <FlashCard from={0} to={1.0}>
