@@ -87,8 +87,8 @@ export default async function Image({ params }: { params: Promise<{ shareId: str
             <div style={{ display: 'flex', fontSize: 34, fontWeight: 700, opacity: 0.95 }}>{overall}/100</div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-            <div style={{ display: 'flex', fontSize: 44, fontWeight: 900, lineHeight: 1.2 }}>{title}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minWidth: 0, maxWidth: 700 }}>
+            <div style={{ display: 'flex', fontSize: 44, fontWeight: 900, lineHeight: 1.2, wordBreak: 'break-word' }}>{title}</div>
             <div style={{ display: 'flex', fontSize: 32, fontWeight: 700, color: '#f9a8d4', marginTop: 12 }}>
               {word}
             </div>
